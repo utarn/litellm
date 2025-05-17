@@ -19,6 +19,17 @@ from litellm.llms.custom_httpx.http_handler import (
     get_ssl_configuration,
 )
 
+try:
+    from litellm._version import version
+except Exception:
+    version = "0.0.0"
+
+headers = {
+	"HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
+	"X-Title": "ModelHarbor Agent",
+    "User-Agent": f"ModelHarbor/{version}",
+}
+
 
 class OpenAIError(BaseLLMException):
     def __init__(
@@ -209,18 +220,20 @@ class BaseOpenAILLM:
                 ssl_verify=ssl_config if isinstance(ssl_config, bool) else None,
             ),
             follow_redirects=True,
+            headers=headers,
         )
 
     @staticmethod
     def _get_sync_http_client() -> Optional[httpx.Client]:
         if litellm.client_session is not None:
             return litellm.client_session
-        
+
         # Get unified SSL configuration
         ssl_config = get_ssl_configuration()
-        
+
         return httpx.Client(
             limits=httpx.Limits(max_connections=1000, max_keepalive_connections=100),
             verify=ssl_config,
             follow_redirects=True,
+            headers=headers,
         )

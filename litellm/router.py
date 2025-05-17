@@ -3621,8 +3621,13 @@ class Router:
                         return response
 
                     else:
-                        error_message = "model={}. context_window_fallbacks={}. fallbacks={}.\n\nSet 'context_window_fallback' - https://docs.litellm.ai/docs/routing#fallbacks".format(
-                            model_group, context_window_fallbacks, fallbacks
+                        error_message = "Context window exceeded for model={}.\n\nConsider using a model with a larger context window - https://docs.litellm.ai/docs/routing#fallbacks".format(
+                            model_group
+                        )
+                        # Log fallback details internally
+                        verbose_router_logger.error(
+                            f"Context window fallback failed for model={model_group}, "
+                            f"context_window_fallbacks={context_window_fallbacks}, fallbacks={fallbacks}"
                         )
                         verbose_router_logger.info(
                             msg="Got 'ContextWindowExceededError'. No context_window_fallback set. Defaulting \
@@ -3656,8 +3661,13 @@ class Router:
                         )
                         return response
                     else:
-                        error_message = "model={}. content_policy_fallback={}. fallbacks={}.\n\nSet 'content_policy_fallback' - https://docs.litellm.ai/docs/routing#fallbacks".format(
-                            model_group, content_policy_fallbacks, fallbacks
+                        error_message = "Content policy violation for model={}.\n\nConsider using a different model - https://docs.litellm.ai/docs/routing#fallbacks".format(
+                            model_group
+                        )
+                        # Log fallback details internally
+                        verbose_router_logger.error(
+                            f"Content policy fallback failed for model={model_group}, "
+                            f"content_policy_fallbacks={content_policy_fallbacks}, fallbacks={fallbacks}"
                         )
                         verbose_router_logger.info(
                             msg="Got 'ContentPolicyViolationError'. No content_policy_fallback set. Defaulting \
@@ -3688,7 +3698,11 @@ class Router:
                             f"No fallback model group found for original model_group={model_group}. Fallbacks={fallbacks}"
                         )
                         if hasattr(original_exception, "message"):
-                            original_exception.message += f"No fallback model group found for original model_group={model_group}. Fallbacks={fallbacks}"  # type: ignore
+                            original_exception.message += f"Request failed for model_group={model_group}."  # type: ignore
+                        # Log fallback details internally
+                        verbose_router_logger.error(
+                            f"No fallback model group found for original model_group={model_group}. Fallbacks={fallbacks}"
+                        )
                         raise original_exception
 
                     input_kwargs.update(
@@ -3719,16 +3733,16 @@ class Router:
                 fallback_failure_exception_str = str(new_exception)
 
             if hasattr(original_exception, "message"):
-                # add the available fallbacks to the exception
-                original_exception.message += ". Received Model Group={}\nAvailable Model Group Fallbacks={}".format(  # type: ignore
-                    model_group,
-                    fallback_model_group,
+                # Log fallback information internally but don't expose to client
+                verbose_router_logger.error(
+                    f"Fallback failed for model_group={model_group}, "
+                    f"available_fallbacks={fallback_model_group}, "
+                    f"fallback_error={fallback_failure_exception_str}"
                 )
+                # Only add generic error message without exposing fallback details
                 if len(fallback_failure_exception_str) > 0:
                     original_exception.message += (  # type: ignore
-                        "\nError doing the fallback: {}".format(
-                            fallback_failure_exception_str
-                        )
+                        "\nRequest failed after attempting fallbacks."
                     )
 
             raise original_exception
@@ -3757,7 +3771,11 @@ class Router:
             raise litellm.InternalServerError(
                 model=model_group,
                 llm_provider="",
-                message=f"This is a mock exception for model={model_group}, to trigger a fallback. Fallbacks={fallbacks}",
+                message=f"Mock exception for testing purposes - model={model_group}",
+            )
+            # Log fallback details internally for testing
+            verbose_router_logger.debug(
+                f"Mock exception triggered for model={model_group}, Fallbacks={fallbacks}"
             )
         elif (
             mock_testing_params.mock_testing_context_fallbacks is not None
@@ -3766,8 +3784,12 @@ class Router:
             raise litellm.ContextWindowExceededError(
                 model=model_group,
                 llm_provider="",
-                message=f"This is a mock exception for model={model_group}, to trigger a fallback. \
-                    Context_Window_Fallbacks={context_window_fallbacks}",
+                message=f"Mock context window exception for testing purposes - model={model_group}",
+            )
+            # Log fallback details internally for testing
+            verbose_router_logger.debug(
+                f"Mock context window exception triggered for model={model_group}, "
+                f"Context_Window_Fallbacks={context_window_fallbacks}"
             )
         elif (
             mock_testing_params.mock_testing_content_policy_fallbacks is not None
@@ -3776,8 +3798,12 @@ class Router:
             raise litellm.ContentPolicyViolationError(
                 model=model_group,
                 llm_provider="",
-                message=f"This is a mock exception for model={model_group}, to trigger a fallback. \
-                    Context_Policy_Fallbacks={content_policy_fallbacks}",
+                message=f"Mock content policy exception for testing purposes - model={model_group}",
+            )
+            # Log fallback details internally for testing
+            verbose_router_logger.debug(
+                f"Mock content policy exception triggered for model={model_group}, "
+                f"Content_Policy_Fallbacks={content_policy_fallbacks}"
             )
 
     @tracer.wrap()
