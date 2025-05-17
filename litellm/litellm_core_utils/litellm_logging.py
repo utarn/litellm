@@ -3726,12 +3726,28 @@ def get_standard_logging_object_payload(
         completion_start_time = kwargs.get("completion_start_time", end_time)
         call_type = kwargs.get("call_type")
         cache_hit = kwargs.get("cache_hit", False)
-        usage = StandardLoggingPayloadSetup.get_usage_from_response_obj(
-            response_obj=response_obj,
-            combined_usage_object=cast(
-                Optional[Usage], kwargs.get("combined_usage_object")
-            ),
-        )
+        # Check if the response is a RerankResponse and extract usage from billed_units
+        billed_total_tokens = None
+        if isinstance(init_response_obj, RerankResponse) and init_response_obj.meta and init_response_obj.meta.get("billed_units"):
+            billed_units = init_response_obj.meta.get("billed_units")
+            if billed_units and billed_units.get("total_tokens") is not None:
+                billed_total_tokens = billed_units["total_tokens"]
+
+        if billed_total_tokens is not None:
+            # For rerank models, use billed_total_tokens for prompt_tokens and total_tokens
+            usage = Usage(
+                prompt_tokens=billed_total_tokens,
+                completion_tokens=0, # Rerank models don't have completion tokens
+                total_tokens=billed_total_tokens,
+            )
+        else:
+            # For other models or if billed_units is not available, use the existing logic
+            usage = StandardLoggingPayloadSetup.get_usage_from_response_obj(
+                response_obj=response_obj,
+                combined_usage_object=cast(
+                    Optional[Usage], kwargs.get("combined_usage_object")
+                ),
+            )
 
         id = response_obj.get("id", kwargs.get("litellm_call_id"))
 
