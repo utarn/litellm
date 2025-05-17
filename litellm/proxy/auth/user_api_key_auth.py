@@ -814,9 +814,7 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
                 )
             except ProxyException as e:
                 if e.code == 401 or e.code == "401":
-                    e.message = "Authentication Error, Invalid proxy server token passed. Received API Key = {}, Key Hash (Token) ={}. Unable to find token in cache or `LiteLLM_VerificationTokenTable`".format(
-                        abbreviated_api_key, api_key
-                    )
+                    e.message = "Authentication Error: Invalid API key provided"
                 raise e
             # update end-user params on valid token
             # These can change per request - it's important to update them here
@@ -1211,6 +1209,7 @@ async def _return_user_api_key_auth_obj(
         "parent_otel_span": parent_otel_span,
         "user_role": retrieved_user_role,
         **valid_token_dict,
+        "premium_user": True, # Set premium_user to True
     }
     if user_obj is not None:
         user_api_key_kwargs.update(

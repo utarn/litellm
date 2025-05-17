@@ -65,8 +65,15 @@ async def async_completion_with_fallbacks(**kwargs):
             most_recent_exception_str = str(e)
             continue
 
+    # Log detailed fallback information internally
+    verbose_logger.error(
+        f"All fallback attempts failed. Most recent error: {most_recent_exception_str}. "
+        f"Tried models: {[f.get('model', f) if isinstance(f, dict) else f for f in fallbacks]}"
+    )
+    
+    # Return generic error to client without exposing fallback details
     raise Exception(
-        f"{most_recent_exception_str}. All fallback attempts failed. Enable verbose logging with `litellm.set_verbose=True` for details."
+        f"{most_recent_exception_str}. Request failed after attempting available options."
     )
 
 

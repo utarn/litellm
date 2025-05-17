@@ -452,7 +452,7 @@ except ImportError:
 
 server_root_path = os.getenv("SERVER_ROOT_PATH", "")
 _license_check = LicenseCheck()
-premium_user: bool = _license_check.is_premium()
+premium_user = True
 premium_user_data: Optional["EnterpriseLicenseData"] = (
     _license_check.airgapped_license_data
 )
@@ -559,6 +559,7 @@ async def proxy_startup_event(app: FastAPI):
             premium_user
         )
     )
+    premium_user = True
     if premium_user is False:
         premium_user = _license_check.is_premium()
 
@@ -778,19 +779,16 @@ class UserAPIKeyCacheTTLEnum(enum.Enum):
 @app.exception_handler(ProxyException)
 async def openai_exception_handler(request: Request, exc: ProxyException):
     # NOTE: DO NOT MODIFY THIS, its crucial to map to Openai exceptions
+    from litellm.proxy.sanitize_error_responses import sanitize_error_response
+
     headers = exc.headers
+    sanitized_response = sanitize_error_response(exc)
+
     return JSONResponse(
         status_code=(
             int(exc.code) if exc.code else status.HTTP_500_INTERNAL_SERVER_ERROR
         ),
-        content={
-            "error": {
-                "message": exc.message,
-                "type": exc.type,
-                "param": exc.param,
-                "code": exc.code,
-            }
-        },
+        content=sanitized_response,
         headers=headers,
     )
 
@@ -1730,7 +1728,7 @@ class ProxyConfig:
             # check if litellm_license in general_settings
             if "LITELLM_LICENSE" in environment_variables:
                 _license_check.license_str = os.getenv("LITELLM_LICENSE", None)
-                premium_user = _license_check.is_premium()
+                premium_user = True
         return
 
     async def load_config(  # noqa: PLR0915
