@@ -1,0 +1,34 @@
+stages:
+  - build
+
+build:
+  stage: build
+  retry: 2
+  only:
+    - main
+  before_script:
+    - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD registry2.zarimpun.com
+      # - apk add --no-cache curl
+  script:
+    - NEWTAG=$(date +%Y%m%d-%H%M)
+    - docker build -t registry2.zarimpun.com/utarn/litellm:$NEWTAG -t registry2.zarimpun.com/utarn/litellm:latest -f Dockerfile .
+    - docker push registry2.zarimpun.com/utarn/litellm:latest
+    - docker push registry2.zarimpun.com/utarn/litellm:$NEWTAG
+    - |
+      # Authenticate and get token
+      echo "Authenticating with LINE API..."
+      AUTH_RESPONSE=$(curl -s -X POST "https://lineoa.scigrad.com/api/auth/login" \
+        -H "Content-Type: application/json" \
+        -d "{\"username\": \"$LINE_API_USER\", \"password\": \"$LINE_API_PASSWORD\"}")
+      TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token')
+      
+      if [ -z "$TOKEN" ]; then
+        echo "Failed to extract token from the authentication response."
+        exit 1
+      fi
+      
+      echo "Sending message via LINE OA API..."
+      curl -X POST "https://lineoa.scigrad.com/api/registration/send" \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"code\": \"REGIS:utharn.b@rmutsb.ac.th\", \"messages\": [{\"type\": \"text\", \"text\": \"python AI CI for $CI_COMMIT_BRANCH Job is done\"}]}"
