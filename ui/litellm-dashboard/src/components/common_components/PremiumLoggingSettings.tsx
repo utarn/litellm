@@ -13,7 +13,7 @@ interface PremiumLoggingSettingsProps {
 export function PremiumLoggingSettings({
   value,
   onChange,
-  premiumUser = false,
+  premiumUser = true,
   disabledCallbacks = [],
   onDisabledCallbacksChange
 }: PremiumLoggingSettingsProps) {

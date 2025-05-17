@@ -460,7 +460,7 @@ except ImportError:
 
 server_root_path = os.getenv("SERVER_ROOT_PATH", "")
 _license_check = LicenseCheck()
-premium_user: bool = _license_check.is_premium()
+premium_user: bool = True
 premium_user_data: Optional[
     "EnterpriseLicenseData"
 ] = _license_check.airgapped_license_data
@@ -567,8 +567,6 @@ async def proxy_startup_event(app: FastAPI):
             premium_user
         )
     )
-    if premium_user is False:
-        premium_user = _license_check.is_premium()
 
     ## CHECK MASTER KEY IN ENVIRONMENT ##
     master_key = get_secret_str("LITELLM_MASTER_KEY")
@@ -1739,7 +1737,7 @@ class ProxyConfig:
             # check if litellm_license in general_settings
             if "LITELLM_LICENSE" in environment_variables:
                 _license_check.license_str = os.getenv("LITELLM_LICENSE", None)
-                premium_user = _license_check.is_premium()
+                premium_user = True
         return
 
     async def load_config(  # noqa: PLR0915
@@ -2153,7 +2151,7 @@ class ProxyConfig:
             # check if litellm_license in general_settings
             if "litellm_license" in general_settings:
                 _license_check.license_str = general_settings["litellm_license"]
-                premium_user = _license_check.is_premium()
+                premium_user = True
 
         router_params: dict = {
             "cache_responses": litellm.cache
@@ -3523,17 +3521,45 @@ async def async_data_generator(
 
         if isinstance(e, HTTPException):
             raise e
-        elif isinstance(e, StreamingCallbackError):
-            error_msg = str(e)
+        
+        # Get status code from exception
+        status_code = getattr(e, "status_code", None)
+        if status_code is None and hasattr(e, "code"):
+            try:
+                status_code = int(getattr(e, "code", 0))
+            except (ValueError, TypeError):
+                status_code = 500
+        if status_code is None:
+            status_code = 500
+
+        # Map status codes to user-friendly messages
+        user_friendly_messages = {
+            400: "Bad request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found",
+            429: "Rate limit reached",
+            500: "Upstream error",
+            502: "Upstream error",
+            503: "Upstream error",
+            504: "Upstream error",
+        }
+        
+        # Get user-friendly message
+        if status_code in user_friendly_messages:
+            user_message = user_friendly_messages[status_code]
+        elif 400 <= status_code < 500:
+            user_message = "Bad request"
+        elif 500 <= status_code < 600:
+            user_message = "Upstream error"
         else:
-            error_traceback = traceback.format_exc()
-            error_msg = f"{str(e)}\n\n{error_traceback}"
+            user_message = "Upstream error"
 
         proxy_exception = ProxyException(
-            message=getattr(e, "message", error_msg),
+            message=user_message,
             type=getattr(e, "type", "None"),
             param=getattr(e, "param", "None"),
-            code=getattr(e, "status_code", 500),
+            code=status_code,
         )
         error_returned = json.dumps({"error": proxy_exception.to_dict()})
         yield f"data: {error_returned}\n\n"

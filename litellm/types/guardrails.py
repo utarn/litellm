@@ -40,6 +40,7 @@ class SupportedGuardrailIntegrations(Enum):
     TOOL_PERMISSION = "tool_permission"
 
 
+
 class Role(Enum):
     SYSTEM = "system"
     ASSISTANT = "assistant"

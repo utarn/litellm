@@ -28,6 +28,7 @@ class MCPSpecVersion(str, enum.Enum):
     jun_2025 = "2025-06-18"
 
 
+
 class MCPAuth(str, enum.Enum):
     none = "none"
     api_key = "api_key"
@@ -52,7 +53,6 @@ MCPAuthType = Optional[
         MCPAuth.oauth2,
     ]
 ]
-
 
 class MCPServerCostInfo(TypedDict, total=False):
     default_cost_per_query: Optional[float]

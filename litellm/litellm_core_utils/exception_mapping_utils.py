@@ -43,16 +43,16 @@ class ExceptionCheckers:
         """
         if not isinstance(error_str, str):
             return False
-        
+
         if "429" in error_str or "rate limit" in error_str.lower():
             return True
-        
+
         #######################################
         # Mistral API returns this error string
         #########################################
         if "service tier capacity exceeded" in error_str.lower():
             return True
-        
+
         return False
 
     @staticmethod
@@ -1498,7 +1498,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"CohereException - {original_exception.message}",
                             llm_provider="cohere",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
                     raise original_exception
             elif custom_llm_provider == "huggingface":
@@ -1573,7 +1573,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"HuggingfaceException - {original_exception.message}",
                             llm_provider="huggingface",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
             elif custom_llm_provider == "ai21":
                 if hasattr(original_exception, "message"):
@@ -1632,7 +1632,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"AI21Exception - {original_exception.message}",
                             llm_provider="ai21",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
             elif custom_llm_provider == "nlp_cloud":
                 if "detail" in error_str:
@@ -1659,7 +1659,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"NLPCloudException - {error_str}",
                             model=model,
                             llm_provider="nlp_cloud",
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
                 if hasattr(
                     original_exception, "status_code"
@@ -1719,7 +1719,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"NLPCloudException - {original_exception.message}",
                             llm_provider="nlp_cloud",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
                     elif (
                         original_exception.status_code == 504
@@ -1739,7 +1739,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"NLPCloudException - {original_exception.message}",
                             llm_provider="nlp_cloud",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
             elif custom_llm_provider == "together_ai":
                 try:
@@ -1848,7 +1848,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                         message=f"TogetherAIException - {original_exception.message}",
                         llm_provider="together_ai",
                         model=model,
-                        request=original_exception.request,
+                        request=getattr(original_exception, "request", None),
                     )
             elif custom_llm_provider == "aleph_alpha":
                 if (
@@ -1953,7 +1953,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"VLLMException - {original_exception.message}",
                             llm_provider="vllm",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
             elif custom_llm_provider == "azure" or custom_llm_provider == "azure_text":
                 message = get_error_message(error_obj=original_exception)
@@ -2128,12 +2128,31 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                         request=httpx.Request(method="POST", url="https://openai.com/"),
                     )
             if custom_llm_provider == "openrouter":
+                # Get the most descriptive error message available
+                openrouter_message = get_error_message(error_obj=original_exception)
+                if openrouter_message is None:
+                    if hasattr(original_exception, "message"):
+                        openrouter_message = str(original_exception.message)
+                    else:
+                        openrouter_message = error_str
+                
+                # Preserve specific OpenRouter error details
+                if "Upstream error from" in openrouter_message:
+                    # Keep the full upstream error message for better debugging
+                    detailed_message = openrouter_message
+                elif "Request failed for model_group=" in openrouter_message:
+                    # Keep model group failure details
+                    detailed_message = openrouter_message
+                else:
+                    # Fallback to original error string
+                    detailed_message = openrouter_message
+                
                 if hasattr(original_exception, "status_code"):
                     exception_mapping_worked = True
                     if original_exception.status_code == 400:
                         exception_mapping_worked = True
                         raise BadRequestError(
-                            message=f"{exception_provider} - {error_str}",
+                            message=f"{exception_provider} - {detailed_message}",
                             llm_provider=custom_llm_provider,
                             model=model,
                             response=getattr(original_exception, "response", None),
@@ -2142,7 +2161,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     elif original_exception.status_code == 401:
                         exception_mapping_worked = True
                         raise AuthenticationError(
-                            message=f"AuthenticationError: {exception_provider} - {error_str}",
+                            message=f"AuthenticationError: {exception_provider} - {detailed_message}",
                             llm_provider=custom_llm_provider,
                             model=model,
                             response=getattr(original_exception, "response", None),
@@ -2151,7 +2170,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     elif original_exception.status_code == 404:
                         exception_mapping_worked = True
                         raise NotFoundError(
-                            message=f"NotFoundError: {exception_provider} - {error_str}",
+                            message=f"NotFoundError: {exception_provider} - {detailed_message}",
                             model=model,
                             llm_provider=custom_llm_provider,
                             response=getattr(original_exception, "response", None),
@@ -2160,7 +2179,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     elif original_exception.status_code == 408:
                         exception_mapping_worked = True
                         raise Timeout(
-                            message=f"Timeout Error: {exception_provider} - {error_str}",
+                            message=f"Timeout Error: {exception_provider} - {detailed_message}",
                             model=model,
                             llm_provider=custom_llm_provider,
                             litellm_debug_info=extra_information,
@@ -2168,7 +2187,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     elif original_exception.status_code == 422:
                         exception_mapping_worked = True
                         raise BadRequestError(
-                            message=f"BadRequestError: {exception_provider} - {error_str}",
+                            message=f"BadRequestError: {exception_provider} - {detailed_message}",
                             model=model,
                             llm_provider=custom_llm_provider,
                             response=getattr(original_exception, "response", None),
@@ -2177,7 +2196,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     elif original_exception.status_code == 429:
                         exception_mapping_worked = True
                         raise RateLimitError(
-                            message=f"RateLimitError: {exception_provider} - {error_str}",
+                            message=f"RateLimitError: {exception_provider} - {detailed_message}",
                             model=model,
                             llm_provider=custom_llm_provider,
                             response=getattr(original_exception, "response", None),
@@ -2186,7 +2205,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     elif original_exception.status_code == 503:
                         exception_mapping_worked = True
                         raise ServiceUnavailableError(
-                            message=f"ServiceUnavailableError: {exception_provider} - {error_str}",
+                            message=f"ServiceUnavailableError: {exception_provider} - {detailed_message}",
                             model=model,
                             llm_provider=custom_llm_provider,
                             response=getattr(original_exception, "response", None),
@@ -2195,7 +2214,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     elif original_exception.status_code == 504:  # gateway timeout error
                         exception_mapping_worked = True
                         raise Timeout(
-                            message=f"Timeout Error: {exception_provider} - {error_str}",
+                            message=f"Timeout Error: {exception_provider} - {detailed_message}",
                             model=model,
                             llm_provider=custom_llm_provider,
                             litellm_debug_info=extra_information,
@@ -2205,16 +2224,16 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                         exception_mapping_worked = True
                         raise APIError(
                             status_code=original_exception.status_code,
-                            message=f"APIError: {exception_provider} - {error_str}",
+                            message=f"APIError: {exception_provider} - {detailed_message}",
                             llm_provider=custom_llm_provider,
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                             litellm_debug_info=extra_information,
                         )
                 else:
                     # if no status code then it is an APIConnectionError: https://github.com/openai/openai-python#handling-errors
                     raise APIConnectionError(
-                        message=f"APIConnectionError: {exception_provider} - {error_str}",
+                        message=f"APIConnectionError: {exception_provider} - {detailed_message}",
                         llm_provider=custom_llm_provider,
                         model=model,
                         litellm_debug_info=extra_information,
@@ -2243,7 +2262,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     message="{} - {}".format(exception_provider, error_str),
                     llm_provider=custom_llm_provider,
                     model=model,
-                    request=original_exception.request,
+                    request=getattr(original_exception, "request", None),
                 )
             else:
                 raise APIConnectionError(

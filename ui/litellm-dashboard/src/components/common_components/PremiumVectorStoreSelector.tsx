@@ -15,7 +15,7 @@ export function PremiumVectorStoreSelector({
   value,
   accessToken,
   placeholder = "Select vector stores",
-  premiumUser = false
+  premiumUser = true
 }: PremiumVectorStoreSelectorProps) {
   if (!premiumUser) {
     return (

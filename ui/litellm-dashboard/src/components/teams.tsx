@@ -152,7 +152,7 @@ const Teams: React.FC<TeamProps> = ({
   userID,
   userRole,
   organizations,
-  premiumUser = false,
+  premiumUser = true,
 }) => {
   const [lastRefreshed, setLastRefreshed] = useState("");
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);

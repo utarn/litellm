@@ -113,9 +113,9 @@ const DynamicForm: React.FC<DynamicFormProps> = ({
                       form.setFieldsValue({ [value.field_name]: checked });
                     }}
 
-                    
+
                   />
-                ) :(
+                ) : (
                   <Input
                     value={value.field_value}
                     onChange={(e) => handleInputChange(value.field_name, e)}

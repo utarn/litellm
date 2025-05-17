@@ -538,6 +538,7 @@ ovhcloud_models: Set = set()
 ovhcloud_embedding_models: Set = set()
 
 
+
 def is_bedrock_pricing_only_model(key: str) -> bool:
     """
     Excludes keys with the pattern 'bedrock/<region>/<model>'. These are in the model_prices_and_context_window.json file for pricing purposes only.

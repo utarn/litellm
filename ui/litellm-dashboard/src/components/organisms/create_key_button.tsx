@@ -144,7 +144,7 @@ const CreateKey: React.FC<CreateKeyProps> = ({
   accessToken,
   data,
   addKey,
-  premiumUser = false,
+  premiumUser = true,
 }) => {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);

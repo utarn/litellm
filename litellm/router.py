@@ -882,6 +882,7 @@ class Router:
     def add_optional_pre_call_checks(
         self, optional_pre_call_checks: Optional[OptionalPreCallChecks]
     ):
+
         if optional_pre_call_checks is not None:
             for pre_call_check in optional_pre_call_checks:
                 _callback: Optional[CustomLogger] = None
@@ -2734,6 +2735,7 @@ class Router:
         passthrough_on_no_deployment = kwargs.pop("passthrough_on_no_deployment", False)
         function_name = "_ageneric_api_call_with_fallbacks"
         try:
+
             parent_otel_span = _get_parent_otel_span_from_kwargs(kwargs)
             try:
                 deployment = await self.async_get_available_deployment(

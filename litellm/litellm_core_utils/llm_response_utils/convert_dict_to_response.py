@@ -446,7 +446,9 @@ def convert_to_model_response_object(  # noqa: PLR0915
                 else:
                     message_str = str(response_object["error"]["message"])
                 error_args["message"] = message_str
-        raised_exception = Exception()
+        
+        # Create exception with proper error message
+        raised_exception = Exception(error_args["message"])
         setattr(raised_exception, "status_code", error_args["status_code"])
         setattr(raised_exception, "message", error_args["message"])
         raise raised_exception
@@ -712,7 +714,11 @@ def convert_to_model_response_object(  # noqa: PLR0915
                 model_response_object.results = response_object["results"]
 
             return model_response_object
-    except Exception:
-        raise Exception(
-            f"Invalid response object {traceback.format_exc()}\n\nreceived_args={received_args}"
-        )
+    except Exception as e:
+        # Preserve original exception type if it has meaningful information
+        if hasattr(e, 'status_code') or hasattr(e, 'message'):
+            raise e
+        
+        # For other exceptions, provide detailed error information
+        error_msg = f"Invalid response object. Original error: {str(e)}\n\nTraceback: {traceback.format_exc()}\n\nreceived_args={received_args}"
+        raise Exception(error_msg)

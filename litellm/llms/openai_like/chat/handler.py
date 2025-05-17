@@ -385,6 +385,12 @@ class OpenAILikeChatHandler(OpenAILikeBase):
                     )
                 except Exception as e:
                     raise OpenAILikeError(status_code=500, message=str(e))
+        # Custom translation logic for all Claude models ModelHarbor
+        if "claude" in model.lower():
+            from litellm.llms.anthropic.experimental_pass_through.adapters.transformation import AnthropicAdapter
+            return AnthropicAdapter().translate_completion_output_params(
+                model_response
+            )
         return OpenAILikeChatConfig._transform_response(
             model=model,
             response=response,

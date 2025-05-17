@@ -33,7 +33,9 @@ except Exception:
     version = "0.0.0"
 
 headers = {
-    "User-Agent": f"litellm/{version}",
+    "HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
+    "X-Title": "ModelHarbor Agent",
+    "User-Agent": f"ModelHarbor/{version}",
 }
 
 # https://www.python-httpx.org/advanced/timeouts

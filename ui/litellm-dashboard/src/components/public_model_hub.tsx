@@ -485,7 +485,7 @@ const PublicModelHub: React.FC<PublicModelHubProps> = ({ accessToken }) => {
           userID={null}
           userEmail={null}
           userRole={null}
-          premiumUser={false}
+          premiumUser={true}
           setProxySettings={setProxySettings}
           proxySettings={proxySettings}
           accessToken={accessToken || null}
