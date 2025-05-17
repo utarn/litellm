@@ -31,4 +31,4 @@ build:
       curl -X POST "https://lineoa.scigrad.com/api/registration/send" \
         -H "Authorization: Bearer $TOKEN" \
         -H "Content-Type: application/json" \
-        -d "{\"code\": \"REGIS:utharn.b@rmutsb.ac.th\", \"messages\": [{\"type\": \"text\", \"text\": \"python AI CI for $CI_COMMIT_BRANCH Job is done\"}]}"
+        -d "{\"code\": \"REGIS:utharn.b@rmutsb.ac.th\", \"messages\": [{\"type\": \"text\", \"text\": \"LiteLLM CI for $CI_COMMIT_BRANCH Job is done\"}]}"
