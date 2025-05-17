@@ -33,7 +33,9 @@ except Exception:
     version = "0.0.0"
 
 headers = {
-    "User-Agent": f"litellm/{version}",
+    "HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
+    "X-Title": "ModelHarbor Agent",
+    "User-Agent": f"ModelHarbor/{version}",
 }
 
 # https://www.python-httpx.org/advanced/timeouts
@@ -59,7 +61,7 @@ def get_ssl_configuration(ssl_verify: Optional[VerifyTypes] = None) -> Union[boo
             - False: Disable SSL verification
             - True: Enable SSL verification
             - str: Path to CA bundle file
-    
+
     Returns:
         Union[bool, str, ssl.SSLContext]: Appropriate SSL configuration
     """

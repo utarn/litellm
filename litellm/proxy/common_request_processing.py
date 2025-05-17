@@ -671,6 +671,39 @@ class ProxyBaseLLMRequestProcessing:
         headers = getattr(e, "headers", {}) or {}
         headers.update(custom_headers)
 
+        # Get status code from exception
+        status_code = getattr(e, "status_code", None)
+        if status_code is None and hasattr(e, "code"):
+            try:
+                status_code = int(getattr(e, "code", 0))
+            except (ValueError, TypeError):
+                status_code = 500
+        if status_code is None:
+            status_code = 500
+
+        # For 429 RateLimitError, return simplified message
+        if isinstance(e, litellm.RateLimitError) or status_code == 429:
+            simplified_msg = "429 litellm.RateLimitError: RateLimitError"
+            raise ProxyException(
+                message=simplified_msg,
+                type=getattr(e, "type", "None"),
+                param=getattr(e, "param", "None"),
+                openai_code=getattr(e, "code", None),
+                code=status_code,
+                headers=headers,
+            )
+        # For other 4xx and 5xx errors, return simplified message with status code
+        elif 400 <= status_code < 600:
+            simplified_msg = f"{status_code} HTTP Error"
+            raise ProxyException(
+                message=simplified_msg,
+                type=getattr(e, "type", "None"),
+                param=getattr(e, "param", "None"),
+                openai_code=getattr(e, "code", None),
+                code=status_code,
+                headers=headers,
+            )
+
         if isinstance(e, HTTPException):
             raise ProxyException(
                 message=getattr(e, "detail", str(e)),
