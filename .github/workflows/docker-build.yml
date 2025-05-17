@@ -1,0 +1,58 @@
+name: Docker Build and Notify
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry2.zarimpun.com
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set image tag
+        id: tag
+        run: echo "tag=$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            registry2.zarimpun.com/utarn/litellm:latest
+            registry2.zarimpun.com/utarn/litellm:${{ steps.tag.outputs.tag }}
+
+      - name: Notify via LINE OA API
+        env:
+          LINE_API_USER: ${{ secrets.LINE_API_USER }}
+          LINE_API_PASSWORD: ${{ secrets.LINE_API_PASSWORD }}
+        run: |
+          echo "Authenticating with LINE API..."
+          AUTH_RESPONSE=$(curl -s -X POST "https://lineoa.scigrad.com/api/auth/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\": \"$LINE_API_USER\", \"password\": \"$LINE_API_PASSWORD\"}")
+          TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token')
+          if [ -z "$TOKEN" ]; then
+            echo "Failed to extract token from the authentication response."
+            exit 1
+          fi
+          echo "Sending message via LINE OA API..."
+          curl -X POST "https://lineoa.scigrad.com/api/registration/send" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"code\": \"REGIS:utharn.b@rmutsb.ac.th\", \"messages\": [{\"type\": \"text\", \"text\": \"python AI CI for ${{ github.ref_name }} Job is done\"}]}"
+
