@@ -76,7 +76,7 @@ const AlertingSettings: React.FC<AlertingSettingsProps> = ({
     }
 
     const initialFormValues: Record<string, any> = {};
-    
+
     alertingSettings.forEach((setting) => {
       initialFormValues[setting.field_name] = setting.field_value;
     });
@@ -114,10 +114,10 @@ const AlertingSettings: React.FC<AlertingSettingsProps> = ({
       const updatedSettings = alertingSettings.map((setting) =>
         setting.field_name === fieldName
           ? {
-              ...setting,
-              stored_in_db: null,
-              field_value: setting.field_default_value,
-            }
+            ...setting,
+            stored_in_db: null,
+            field_value: setting.field_default_value,
+          }
           : setting
       );
       setAlertingSettings(updatedSettings);

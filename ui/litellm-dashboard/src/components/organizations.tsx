@@ -74,7 +74,7 @@ const OrganizationsTable: React.FC<OrganizationsTableProps> = ({
 
   const handleDelete = (orgId: string | null) => {
     if (!orgId) return;
-    
+
     setOrgToDelete(orgId);
     setIsDeleteModalOpen(true);
   };
@@ -189,87 +189,87 @@ const OrganizationsTable: React.FC<OrganizationsTableProps> = ({
                   <TableBody>
                     {organizations && organizations.length > 0
                       ? organizations
-                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                          .map((org: Organization) => (
-                            <TableRow key={org.organization_id}>
-                              <TableCell>
-                                <div className="overflow-hidden">
-                                  <Tooltip title={org.organization_id}>
-                                    <Button
-                                      size="xs"
-                                      variant="light"
-                                      className="font-mono text-blue-500 bg-blue-50 hover:bg-blue-100 text-xs font-normal px-2 py-0.5 text-left overflow-hidden truncate max-w-[200px]"
-                                      onClick={() => setSelectedOrgId(org.organization_id)}
-                                    >
-                                      {org.organization_id?.slice(0, 7)}...
-                                    </Button>
-                                  </Tooltip>
-                                </div>
-                              </TableCell>
-                              <TableCell>{org.organization_alias}</TableCell>
-                              <TableCell>
-                                {org.created_at ? new Date(org.created_at).toLocaleDateString() : "N/A"}
-                              </TableCell>
-                              <TableCell>{org.spend}</TableCell>
-                              <TableCell>
-                                {org.litellm_budget_table?.max_budget !== null && org.litellm_budget_table?.max_budget !== undefined ? org.litellm_budget_table?.max_budget : "No limit"}
-                              </TableCell>
-                              <TableCell>
-                                {Array.isArray(org.models) && (
-                                  <div className="flex flex-col">
-                                    {org.models.length === 0 ? (
-                                      <Badge size="xs" className="mb-1" color="red">
-                                        All Proxy Models
-                                      </Badge>
-                                    ) : (
-                                      org.models.map((model, index) =>
-                                        model === "all-proxy-models" ? (
-                                          <Badge key={index} size="xs" className="mb-1" color="red">
-                                            All Proxy Models
-                                          </Badge>
-                                        ) : (
-                                          <Badge key={index} size="xs" className="mb-1" color="blue">
-                                            {model.length > 30
-                                              ? `${getModelDisplayName(model).slice(0, 30)}...`
-                                              : getModelDisplayName(model)}
-                                          </Badge>
-                                        )
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                        .map((org: Organization) => (
+                          <TableRow key={org.organization_id}>
+                            <TableCell>
+                              <div className="overflow-hidden">
+                                <Tooltip title={org.organization_id}>
+                                  <Button
+                                    size="xs"
+                                    variant="light"
+                                    className="font-mono text-blue-500 bg-blue-50 hover:bg-blue-100 text-xs font-normal px-2 py-0.5 text-left overflow-hidden truncate max-w-[200px]"
+                                    onClick={() => setSelectedOrgId(org.organization_id)}
+                                  >
+                                    {org.organization_id?.slice(0, 7)}...
+                                  </Button>
+                                </Tooltip>
+                              </div>
+                            </TableCell>
+                            <TableCell>{org.organization_alias}</TableCell>
+                            <TableCell>
+                              {org.created_at ? new Date(org.created_at).toLocaleDateString() : "N/A"}
+                            </TableCell>
+                            <TableCell>{org.spend}</TableCell>
+                            <TableCell>
+                              {org.litellm_budget_table?.max_budget !== null && org.litellm_budget_table?.max_budget !== undefined ? org.litellm_budget_table?.max_budget : "No limit"}
+                            </TableCell>
+                            <TableCell>
+                              {Array.isArray(org.models) && (
+                                <div className="flex flex-col">
+                                  {org.models.length === 0 ? (
+                                    <Badge size="xs" className="mb-1" color="red">
+                                      All Proxy Models
+                                    </Badge>
+                                  ) : (
+                                    org.models.map((model, index) =>
+                                      model === "all-proxy-models" ? (
+                                        <Badge key={index} size="xs" className="mb-1" color="red">
+                                          All Proxy Models
+                                        </Badge>
+                                      ) : (
+                                        <Badge key={index} size="xs" className="mb-1" color="blue">
+                                          {model.length > 30
+                                            ? `${getModelDisplayName(model).slice(0, 30)}...`
+                                            : getModelDisplayName(model)}
+                                        </Badge>
                                       )
-                                    )}
-                                  </div>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Text>
-                                  TPM: {org.litellm_budget_table?.tpm_limit ? org.litellm_budget_table?.tpm_limit : "Unlimited"}
-                                  <br />
-                                  RPM: {org.litellm_budget_table?.rpm_limit ? org.litellm_budget_table?.rpm_limit : "Unlimited"}
-                                </Text>
-                              </TableCell>
-                              <TableCell>
-                                <Text>{org.members?.length || 0} Members</Text>
-                              </TableCell>
-                              <TableCell>
-                                {userRole === "Admin" && (
-                                  <>
-                                    <Icon
-                                      icon={PencilAltIcon}
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedOrgId(org.organization_id);
-                                        setEditOrg(true);
-                                      }}
-                                    />
-                                    <Icon
-                                      onClick={() => handleDelete(org.organization_id)}
-                                      icon={TrashIcon}
-                                      size="sm"
-                                    />
-                                  </>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))
+                                    )
+                                  )}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Text>
+                                TPM: {org.litellm_budget_table?.tpm_limit ? org.litellm_budget_table?.tpm_limit : "Unlimited"}
+                                <br />
+                                RPM: {org.litellm_budget_table?.rpm_limit ? org.litellm_budget_table?.rpm_limit : "Unlimited"}
+                              </Text>
+                            </TableCell>
+                            <TableCell>
+                              <Text>{org.members?.length || 0} Members</Text>
+                            </TableCell>
+                            <TableCell>
+                              {userRole === "Admin" && (
+                                <>
+                                  <Icon
+                                    icon={PencilAltIcon}
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedOrgId(org.organization_id);
+                                      setEditOrg(true);
+                                    }}
+                                  />
+                                  <Icon
+                                    onClick={() => handleDelete(org.organization_id)}
+                                    icon={TrashIcon}
+                                    size="sm"
+                                  />
+                                </>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
                       : null}
                   </TableBody>
                 </Table>
@@ -338,7 +338,7 @@ const OrganizationsTable: React.FC<OrganizationsTableProps> = ({
                       <NumericalInput step={1} width={400} />
                     </Form.Item>
 
-                    <Form.Item label="Metadata" name="metadata">  
+                    <Form.Item label="Metadata" name="metadata">
                       <Input.TextArea rows={4} />
                     </Form.Item>
 

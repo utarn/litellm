@@ -76,7 +76,7 @@ import { Setter } from "@/types";
 const isLocal = process.env.NODE_ENV === "development";
 const proxyBaseUrl = isLocal ? "http://localhost:4000" : null;
 if (isLocal != true) {
-  console.log = function () {};
+  console.log = function () { };
 }
 
 interface EditKeyModalProps {
@@ -170,7 +170,7 @@ const ViewKeyTable: React.FC<ViewKeyTableProps> = ({
   const [spendData, setSpendData] = useState<
     { day: string; spend: number }[] | null
   >(null);
-  
+
   // NEW: Declare filter states for team and key alias.
   const [teamFilter, setTeamFilter] = useState<string>(selectedTeam?.team_id || "");
 
@@ -364,7 +364,7 @@ const ViewKeyTable: React.FC<ViewKeyTableProps> = ({
         const updatedData = data.map((item) =>
           item.token === selectedToken?.token ?
             { ...item, key_name: response.key_name, ...formValues }
-          : item
+            : item
         );
         setData(updatedData);
       }
@@ -381,7 +381,7 @@ const ViewKeyTable: React.FC<ViewKeyTableProps> = ({
 
   return (
     <div>
-      <AllKeysTable 
+      <AllKeysTable
         keys={keys}
         setKeys={setKeys}
         isLoading={isLoading}
@@ -511,7 +511,7 @@ const ViewKeyTable: React.FC<ViewKeyTableProps> = ({
               Current expiry:{" "}
               {selectedToken?.expires != null ?
                 new Date(selectedToken.expires).toLocaleString()
-              : "Never"}
+                : "Never"}
             </div>
             {newExpiryTime && (
               <div className="mt-2 text-sm text-green-600">
@@ -519,7 +519,7 @@ const ViewKeyTable: React.FC<ViewKeyTableProps> = ({
               </div>
             )}
           </Form>
-        : <div>
+          : <div>
             <p className="mb-2 text-gray-500 italic text-[12px]">
               Upgrade to use this feature
             </p>

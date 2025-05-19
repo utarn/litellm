@@ -25,7 +25,7 @@ import { Typography } from "antd";
 import { clearTokenCookies } from "@/utils/cookieUtils";
 const isLocal = process.env.NODE_ENV === "development";
 if (isLocal != true) {
-  console.log = function() {};
+  console.log = function () { };
 }
 console.log("isLocal:", isLocal);
 const proxyBaseUrl = isLocal ? "http://localhost:4000" : null;
@@ -49,8 +49,8 @@ export type UserInfo = {
 function getCookie(name: string) {
   console.log("COOKIES", document.cookie)
   const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith(name + '='));
+    .split('; ')
+    .find(row => row.startsWith(name + '='));
   return cookieValue ? cookieValue.split('=')[1] : null;
 }
 
@@ -197,15 +197,15 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
               null,
               null
             );
-            
+
 
             setUserSpendData(response["user_info"]);
             console.log(`userSpendData: ${JSON.stringify(userSpendData)}`)
-            
+
 
             // set keys for admin and users
             if (!response?.teams[0].keys) {
-              setKeys(response["keys"]); 
+              setKeys(response["keys"]);
             } else {
               setKeys(
                 response["keys"].concat(
@@ -214,7 +214,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                     .flatMap((team: any) => team.keys)
                 )
               );
-              
+
             }
 
             sessionStorage.setItem(
@@ -325,13 +325,13 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
   function gotoLogin() {
     // Clear token cookies using the utility function
     clearTokenCookies();
-    
+
     const url = proxyBaseUrl
       ? `${proxyBaseUrl}/sso/key/generate`
       : `/sso/key/generate`;
 
     console.log("Full URL:", url);
-    window.location.href = url; 
+    window.location.href = url;
 
     return null;
   }
@@ -339,7 +339,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
   if (token == null) {
     // user is not logged in as yet 
     console.log("All cookies before redirect:", document.cookie);
-    
+
     // Clear token cookies using the utility function
     gotoLogin();
     return null;
@@ -350,37 +350,37 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
       console.log("Decoded token:", decoded);
       const expTime = decoded.exp;
       const currentTime = Math.floor(Date.now() / 1000);
-      
+
       if (expTime && currentTime >= expTime) {
         console.log("Token expired, redirecting to login");
-        
+
         // Clear token cookies
         clearTokenCookies();
-        
+
         const url = proxyBaseUrl
           ? `${proxyBaseUrl}/sso/key/generate`
           : `/sso/key/generate`;
-        
+
         console.log("Full URL for expired token:", url);
         window.location.href = url;
-        
+
         return null;
       }
     } catch (error) {
       console.error("Error decoding token:", error);
       // If there's an error decoding the token, consider it invalid
       clearTokenCookies();
-      
+
       const url = proxyBaseUrl
         ? `${proxyBaseUrl}/sso/key/generate`
         : `/sso/key/generate`;
-      
+
       console.log("Full URL after token decode error:", url);
       window.location.href = url;
-      
+
       return null;
     }
-    
+
     if (accessToken == null) {
       return null;
     }
@@ -413,7 +413,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
     <div className="w-full mx-4 h-[75vh]">
       <Grid numItems={1} className="gap-2 p-8 w-full mt-2">
         <Col numColSpan={1} className="flex flex-col gap-2">
-        <CreateKey
+          <CreateKey
             key={selectedTeam ? selectedTeam.team_id : null}
             userID={userID}
             team={selectedTeam as Team | null}

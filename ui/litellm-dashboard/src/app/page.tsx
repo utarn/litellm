@@ -88,7 +88,7 @@ function LoadingScreen() {
       <div className="text-lg font-medium py-2 pr-4 border-r border-r-gray-200">
         🚅 LiteLLM
       </div>
-      
+
       <div className="flex items-center justify-center gap-2">
         <UiLoadingSpinner className="size-4" />
         <span className="text-gray-600 text-sm">Loading...</span>
@@ -144,7 +144,7 @@ export default function CreateKeyPage() {
   const addKey = (data: any) => {
     setKeys((prevData) => (prevData ? [...prevData, data] : [data]))
     setCreateClicked(() => !createClicked);
-  } 
+  }
   const redirectToLogin = authLoading === false && token === null && invitation_id === null;
 
   useEffect(() => {
@@ -203,9 +203,7 @@ export default function CreateKeyPage() {
         console.log(`User Email is not set ${decoded}`);
       }
 
-      if (decoded.premium_user) {
-        setPremiumUser(decoded.premium_user);
-      }
+      // premium_user is now set on the backend, so we don't need this check
 
       if (decoded.auth_header_name) {
         setGlobalLitellmHeaderName(decoded.auth_header_name);
@@ -216,7 +214,7 @@ export default function CreateKeyPage() {
       }
     }
   }, [token]);
-  
+
   useEffect(() => {
     if (accessToken && userID && userRole) {
       fetchUserModels(userID, userRole, accessToken, setUserModels);
@@ -360,9 +358,9 @@ export default function CreateKeyPage() {
                 <BudgetPanel accessToken={accessToken} />
               ) : page == "guardrails" ? (
                 <GuardrailsPanel accessToken={accessToken} userRole={userRole} />
-              ): page == "transform-request" ? (
+              ) : page == "transform-request" ? (
                 <TransformRequestPanel accessToken={accessToken} />
-              ): page == "general-settings" ? (
+              ) : page == "general-settings" ? (
                 <GeneralSettings
                   userID={userID}
                   userRole={userRole}
@@ -423,17 +421,17 @@ export default function CreateKeyPage() {
                   accessToken={accessToken}
                   teams={teams as Team[] ?? []}
                 />
-              ) : 
-              (
-                <Usage
-                  userID={userID}
-                  userRole={userRole}
-                  token={token}
-                  accessToken={accessToken}
-                  keys={keys}
-                  premiumUser={premiumUser}
-                />
-              )}
+              ) :
+                (
+                  <Usage
+                    userID={userID}
+                    userRole={userRole}
+                    token={token}
+                    accessToken={accessToken}
+                    keys={keys}
+                    premiumUser={premiumUser}
+                  />
+                )}
             </div>
           </div>
         )}

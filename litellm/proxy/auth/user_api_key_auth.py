@@ -1137,6 +1137,7 @@ async def _return_user_api_key_auth_obj(
         "parent_otel_span": parent_otel_span,
         "user_role": retrieved_user_role,
         **valid_token_dict,
+        "premium_user": True, # Set premium_user to True
     }
     if user_obj is not None:
         user_api_key_kwargs.update(

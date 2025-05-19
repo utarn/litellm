@@ -4,7 +4,7 @@ import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { Organization } from "@/components/networking";
 import { defaultOrg } from "@/components/common_components/default_org";
-import { 
+import {
   UserOutlined,
   LogoutOutlined
 } from '@ant-design/icons';
@@ -102,8 +102,8 @@ const Navbar: React.FC<NavbarProps> = ({
               Docs
             </a>
 
-            <Dropdown 
-              menu={{ 
+            <Dropdown
+              menu={{
                 items: userItems,
                 style: {
                   padding: '4px',
