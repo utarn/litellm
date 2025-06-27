@@ -259,7 +259,7 @@ const ModelHub: React.FC<ModelHubProps> = ({
               <TabPanels>
                 <TabPanel>
                   <Text>
-                    <strong>Model Group:</strong> 
+                    <strong>Model Group:</strong>
                     <pre>{JSON.stringify(selectedModel, null, 2)}</pre>
                   </Text>
                 </TabPanel>

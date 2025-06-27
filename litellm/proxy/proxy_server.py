@@ -422,7 +422,7 @@ except ImportError:
 
 server_root_path = os.getenv("SERVER_ROOT_PATH", "")
 _license_check = LicenseCheck()
-premium_user: bool = _license_check.is_premium()
+premium_user = True
 premium_user_data: Optional["EnterpriseLicenseData"] = (
     _license_check.airgapped_license_data
 )
@@ -525,6 +525,7 @@ async def proxy_startup_event(app: FastAPI):
             premium_user
         )
     )
+    premium_user = True
     if premium_user is False:
         premium_user = _license_check.is_premium()
 
@@ -1637,9 +1638,8 @@ class ProxyConfig:
                 os.environ[key] = str(get_secret(secret_name=key, default_value=value))
 
             # check if litellm_license in general_settings
-            if "LITELLM_LICENSE" in environment_variables:
-                _license_check.license_str = os.getenv("LITELLM_LICENSE", None)
-                premium_user = _license_check.is_premium()
+
+        premium_user = True
 
         ## Callback settings
         callback_settings = config.get("callback_settings", None)

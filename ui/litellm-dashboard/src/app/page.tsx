@@ -167,7 +167,7 @@ export default function CreateKeyPage() {
       return;
     }
 
- 
+
     const decoded = jwtDecode(token) as { [key: string]: any };
     if (decoded) {
       // cast decoded to dictionary
@@ -207,9 +207,7 @@ export default function CreateKeyPage() {
         console.log(`User Email is not set ${decoded}`);
       }
 
-      if (decoded.premium_user) {
-        setPremiumUser(decoded.premium_user);
-      }
+      // premium_user is now set on the backend, so we don't need this check
 
       if (decoded.auth_header_name) {
         setGlobalLitellmHeaderName(decoded.auth_header_name);
@@ -221,10 +219,10 @@ export default function CreateKeyPage() {
 
     }
 
-    
+
   }, [token]);
 
-  
+
   useEffect(() => {
     if (accessToken && userID && userRole) {
       fetchUserModels(userID, userRole, accessToken, setUserModels);

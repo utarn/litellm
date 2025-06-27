@@ -234,7 +234,7 @@ const OrganizationsTable: React.FC<OrganizationsTableProps> = ({
                     <NumericalInput step={1} width={400} />
                   </Form.Item>
 
-                  <Form.Item 
+                  <Form.Item
                     label={
                       <span>
                         Allowed Vector Stores{' '}
@@ -544,7 +544,7 @@ const OrganizationsTable: React.FC<OrganizationsTableProps> = ({
                     <Form.Item label="Requests per minute Limit (RPM)" name="rpm_limit">
                       <NumericalInput step={1} width={400} />
                     </Form.Item>
-                    <Form.Item 
+                    <Form.Item
                       label={
                         <span>
                           Allowed Vector Stores{' '}
@@ -585,7 +585,7 @@ const OrganizationsTable: React.FC<OrganizationsTableProps> = ({
                       />
                     </Form.Item>
 
-                    <Form.Item label="Metadata" name="metadata">  
+                    <Form.Item label="Metadata" name="metadata">
                       <Input.TextArea rows={4} />
                     </Form.Item>
 
