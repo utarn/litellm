@@ -729,19 +729,16 @@ class UserAPIKeyCacheTTLEnum(enum.Enum):
 @app.exception_handler(ProxyException)
 async def openai_exception_handler(request: Request, exc: ProxyException):
     # NOTE: DO NOT MODIFY THIS, its crucial to map to Openai exceptions
+    from litellm.proxy.sanitize_error_responses import sanitize_error_response
+    
     headers = exc.headers
+    sanitized_response = sanitize_error_response(exc)
+    
     return JSONResponse(
         status_code=(
             int(exc.code) if exc.code else status.HTTP_500_INTERNAL_SERVER_ERROR
         ),
-        content={
-            "error": {
-                "message": exc.message,
-                "type": exc.type,
-                "param": exc.param,
-                "code": exc.code,
-            }
-        },
+        content=sanitized_response,
         headers=headers,
     )
 

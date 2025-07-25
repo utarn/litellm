@@ -31,11 +31,24 @@ try:
 except Exception:
     version = "0.0.0"
 
-headers = {
-	"HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
-	"X-Title": "ModelHarbor Agent",
-    "User-Agent": f"ModelHarbor/{version}",
-}
+# ModelHarbor headers - applied selectively to OpenAI and OpenRouter requests
+def get_modelharbor_headers(provider: Optional[str] = None) -> dict:
+    """
+    Returns ModelHarbor headers for specific providers (OpenAI and OpenRouter only).
+    
+    Args:
+        provider: The LLM provider name (e.g., 'openai', 'openrouter')
+        
+    Returns:
+        dict: Headers to include for ModelHarbor requests, empty dict for other providers
+    """
+    if provider in ['openai', 'openrouter']:
+        return {
+            "HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
+            "X-Title": "ModelHarbor Agent",
+            "User-Agent": f"ModelHarbor/{version}",
+        }
+    return {}
 
 # https://www.python-httpx.org/advanced/timeouts
 _DEFAULT_TIMEOUT = httpx.Timeout(timeout=5.0, connect=5.0)
@@ -103,6 +116,7 @@ class AsyncHTTPHandler:
         concurrent_limit=1000,
         client_alias: Optional[str] = None,  # name for client in logs
         ssl_verify: Optional[VerifyTypes] = None,
+        headers: Optional[dict] = None,
     ):
         self.timeout = timeout
         self.event_hooks = event_hooks
@@ -111,6 +125,7 @@ class AsyncHTTPHandler:
             concurrent_limit=concurrent_limit,
             event_hooks=event_hooks,
             ssl_verify=ssl_verify,
+            headers=headers,
         )
         self.client_alias = client_alias
 
@@ -120,6 +135,7 @@ class AsyncHTTPHandler:
         concurrent_limit: int,
         event_hooks: Optional[Mapping[str, List[Callable[..., Any]]]],
         ssl_verify: Optional[VerifyTypes] = None,
+        headers: Optional[dict] = None,
     ) -> httpx.AsyncClient:
         # SSL certificates (a.k.a CA bundle) used to verify the identity of requested hosts.
         # /path/to/certificate.pem
@@ -158,18 +174,22 @@ class AsyncHTTPHandler:
             ssl_verify=ssl_verify if isinstance(ssl_verify, bool) else None,
         )
 
-        return httpx.AsyncClient(
-            transport=transport,
-            event_hooks=event_hooks,
-            timeout=timeout,
-            limits=httpx.Limits(
+        client_kwargs = {
+            "transport": transport,
+            "event_hooks": event_hooks,
+            "timeout": timeout,
+            "limits": httpx.Limits(
                 max_connections=concurrent_limit,
                 max_keepalive_connections=concurrent_limit,
             ),
-            verify=ssl_verify,
-            cert=cert,
-            headers=headers,
-        )
+            "verify": ssl_verify,
+            "cert": cert,
+        }
+        
+        if headers:
+            client_kwargs["headers"] = headers
+            
+        return httpx.AsyncClient(**client_kwargs)
 
     async def close(self):
         # Close the client when you're done with it
@@ -626,6 +646,7 @@ class HTTPHandler:
         concurrent_limit=1000,
         client: Optional[httpx.Client] = None,
         ssl_verify: Optional[Union[bool, str]] = None,
+        headers: Optional[dict] = None,
     ):
         if timeout is None:
             timeout = _DEFAULT_TIMEOUT
@@ -644,17 +665,21 @@ class HTTPHandler:
             transport = self._create_sync_transport()
 
             # Create a client with a connection pool
-            self.client = httpx.Client(
-                transport=transport,
-                timeout=timeout,
-                limits=httpx.Limits(
+            client_kwargs = {
+                "transport": transport,
+                "timeout": timeout,
+                "limits": httpx.Limits(
                     max_connections=concurrent_limit,
                     max_keepalive_connections=concurrent_limit,
                 ),
-                verify=ssl_verify,
-                cert=cert,
-                headers=headers,
-            )
+                "verify": ssl_verify,
+                "cert": cert,
+            }
+            
+            if headers:
+                client_kwargs["headers"] = headers
+                
+            self.client = httpx.Client(**client_kwargs)
         else:
             self.client = client
 
@@ -906,12 +931,25 @@ def get_async_httpx_client(
     if _cached_client:
         return _cached_client
 
+    # Add ModelHarbor headers for specific providers
+    provider_headers = get_modelharbor_headers(llm_provider)
+    
     if params is not None:
-        _new_client = AsyncHTTPHandler(**params)
+        # Merge provider headers with existing params
+        merged_params = params.copy()
+        if provider_headers:
+            merged_params['headers'] = provider_headers
+        _new_client = AsyncHTTPHandler(**merged_params)
     else:
-        _new_client = AsyncHTTPHandler(
-            timeout=httpx.Timeout(timeout=600.0, connect=5.0)
-        )
+        if provider_headers:
+            _new_client = AsyncHTTPHandler(
+                timeout=httpx.Timeout(timeout=600.0, connect=5.0),
+                headers=provider_headers
+            )
+        else:
+            _new_client = AsyncHTTPHandler(
+                timeout=httpx.Timeout(timeout=600.0, connect=5.0)
+            )
 
     litellm.in_memory_llm_clients_cache.set_cache(
         key=_cache_key_name,
@@ -921,7 +959,10 @@ def get_async_httpx_client(
     return _new_client
 
 
-def _get_httpx_client(params: Optional[dict] = None) -> HTTPHandler:
+def _get_httpx_client(
+    params: Optional[dict] = None,
+    llm_provider: Optional[Union[LlmProviders, httpxSpecialProvider]] = None
+) -> HTTPHandler:
     """
     Retrieves the HTTP client from the cache
     If not present, creates a new client
@@ -936,16 +977,30 @@ def _get_httpx_client(params: Optional[dict] = None) -> HTTPHandler:
             except Exception:
                 pass
 
-    _cache_key_name = "httpx_client" + _params_key_name
+    _provider_key = llm_provider or ""
+    _cache_key_name = "httpx_client" + _params_key_name + _provider_key
 
     _cached_client = litellm.in_memory_llm_clients_cache.get_cache(_cache_key_name)
     if _cached_client:
         return _cached_client
 
+    # Add ModelHarbor headers for specific providers
+    provider_headers = get_modelharbor_headers(llm_provider) if llm_provider else {}
+    
     if params is not None:
-        _new_client = HTTPHandler(**params)
+        # Merge provider headers with existing params
+        merged_params = params.copy()
+        if provider_headers:
+            merged_params['headers'] = provider_headers
+        _new_client = HTTPHandler(**merged_params)
     else:
-        _new_client = HTTPHandler(timeout=httpx.Timeout(timeout=600.0, connect=5.0))
+        if provider_headers:
+            _new_client = HTTPHandler(
+                timeout=httpx.Timeout(timeout=600.0, connect=5.0),
+                headers=provider_headers
+            )
+        else:
+            _new_client = HTTPHandler(timeout=httpx.Timeout(timeout=600.0, connect=5.0))
 
     litellm.in_memory_llm_clients_cache.set_cache(
         key=_cache_key_name,

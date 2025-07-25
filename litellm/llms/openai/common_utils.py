@@ -17,6 +17,17 @@ from litellm.llms.custom_httpx.http_handler import (
     AsyncHTTPHandler,
 )
 
+try:
+    from litellm._version import version
+except Exception:
+    version = "0.0.0"
+
+headers = {
+	"HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
+	"X-Title": "ModelHarbor Agent",
+    "User-Agent": f"ModelHarbor/{version}",
+}
+
 
 class OpenAIError(BaseLLMException):
     def __init__(
@@ -200,6 +211,7 @@ class BaseOpenAILLM:
             limits=httpx.Limits(max_connections=1000, max_keepalive_connections=100),
             verify=litellm.ssl_verify,
             transport=AsyncHTTPHandler._create_async_transport(),
+            headers=headers,
         )
 
     @staticmethod
@@ -209,4 +221,5 @@ class BaseOpenAILLM:
         return httpx.Client(
             limits=httpx.Limits(max_connections=1000, max_keepalive_connections=100),
             verify=litellm.ssl_verify,
+            headers=headers,
         )
