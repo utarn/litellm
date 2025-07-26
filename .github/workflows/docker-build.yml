@@ -3,7 +3,7 @@ name: Docker Build and Notify
 on:
   push:
     branches:
-      - vv1.73.0
+      - main
 
 jobs:
   build:
