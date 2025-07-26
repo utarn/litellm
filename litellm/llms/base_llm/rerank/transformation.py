@@ -120,7 +120,10 @@ class BaseRerankConfig(ABC):
                 return 0.0, 0.0
             prompt_cost = model_info["input_cost_per_token"] * total_tokens
             return prompt_cost, 0.0
-        elif "input_cost_per_query" not in model_info or model_info["input_cost_per_query"] is None:
+        elif (
+            "input_cost_per_query" not in model_info
+            or model_info["input_cost_per_query"] is None
+        ):
             return 0.0, 0.0
 
         search_units = billed_units.get("search_units")
