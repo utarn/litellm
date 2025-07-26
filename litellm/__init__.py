@@ -494,6 +494,7 @@ lambda_ai_models: List = []
 hyperbolic_models: List = []
 recraft_models: List = []
 
+
 def is_bedrock_pricing_only_model(key: str) -> bool:
     """
     Excludes keys with the pattern 'bedrock/<region>/<model>'. These are in the model_prices_and_context_window.json file for pricing purposes only.

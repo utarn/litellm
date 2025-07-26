@@ -38,8 +38,10 @@ class PrometheusAuthMiddleware(BaseHTTPMiddleware):
                         or "",
                     )
                 except Exception as e:
-                    from litellm.proxy.sanitize_error_responses import sanitize_error_response
-                    
+                    from litellm.proxy.sanitize_error_responses import (
+                        sanitize_error_response,
+                    )
+
                     # Create a ProxyException-like object for sanitization
                     class AuthException(Exception):
                         def __init__(self, message, code=401):
@@ -48,10 +50,10 @@ class PrometheusAuthMiddleware(BaseHTTPMiddleware):
                             self.code = code
                             self.type = "authentication_error"
                             self.param = None
-                    
+
                     auth_exc = AuthException("Unauthorized access to metrics endpoint")
                     sanitized_response = sanitize_error_response(auth_exc)
-                    
+
                     return JSONResponse(
                         status_code=401,
                         content=sanitized_response,

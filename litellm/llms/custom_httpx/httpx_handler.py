@@ -8,8 +8,8 @@ except Exception:
     version = "0.0.0"
 
 headers = {
-	"HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
-	"X-Title": "ModelHarbor Agent",
+    "HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
+    "X-Title": "ModelHarbor Agent",
     "User-Agent": f"ModelHarbor/{version}",
 }
 

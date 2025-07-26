@@ -25,8 +25,8 @@ except Exception:
     version = "0.0.0"
 
 headers = {
-	"HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
-	"X-Title": "ModelHarbor Agent",
+    "HTTP-Referer": "https://github.com/ModelHarbor/ModelHarbor-Agent",
+    "X-Title": "ModelHarbor Agent",
     "User-Agent": f"ModelHarbor/{version}",
 }
 
@@ -216,7 +216,9 @@ class BaseOpenAILLM:
             limits=httpx.Limits(max_connections=1000, max_keepalive_connections=100),
             verify=ssl_config,
             transport=AsyncHTTPHandler._create_async_transport(
-                ssl_context=ssl_config if isinstance(ssl_config, ssl.SSLContext) else None,
+                ssl_context=ssl_config
+                if isinstance(ssl_config, ssl.SSLContext)
+                else None,
                 ssl_verify=ssl_config if isinstance(ssl_config, bool) else None,
             ),
             follow_redirects=True,
