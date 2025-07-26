@@ -459,6 +459,7 @@ def get_redis_connection_pool(**env_overrides):
         timeout=REDIS_CONNECTION_POOL_TIMEOUT, **redis_kwargs
     )
 
+
 def _pretty_print_redis_config(redis_kwargs: dict) -> None:
     """Pretty print the Redis configuration using rich with sensitive data masking"""
     try:
@@ -468,6 +469,7 @@ def _pretty_print_redis_config(redis_kwargs: dict) -> None:
         from rich.panel import Panel
         from rich.table import Table
         from rich.text import Text
+
         if not verbose_logger.isEnabledFor(logging.DEBUG):
             return
 
@@ -475,7 +477,7 @@ def _pretty_print_redis_config(redis_kwargs: dict) -> None:
 
         # Initialize the sensitive data masker
         masker = SensitiveDataMasker()
-        
+
         # Mask sensitive data in redis_kwargs
         masked_redis_kwargs = masker.mask_dict(redis_kwargs)
 
@@ -507,7 +509,7 @@ def _pretty_print_redis_config(redis_kwargs: dict) -> None:
                         value_str = str(value)
                 else:
                     value_str = str(value)
-                
+
                 config_table.add_row(key, value_str)
 
         # Determine connection type
@@ -544,4 +546,3 @@ def _pretty_print_redis_config(redis_kwargs: dict) -> None:
         verbose_logger.info(f"Redis configuration: {masked_redis_kwargs}")
     except Exception as e:
         verbose_logger.error(f"Error pretty printing Redis configuration: {e}")
-

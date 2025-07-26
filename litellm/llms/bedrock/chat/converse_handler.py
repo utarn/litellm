@@ -130,7 +130,7 @@ class BedrockConverseLLM(BaseAWSLLM):
             endpoint_url=api_base,
             data=data,
             headers=headers,
-            api_key=api_key
+            api_key=api_key,
         )
 
         ## LOGGING
@@ -197,7 +197,7 @@ class BedrockConverseLLM(BaseAWSLLM):
             endpoint_url=api_base,
             data=data,
             headers=headers,
-            api_key=api_key
+            api_key=api_key,
         )
 
         ## LOGGING
@@ -365,7 +365,7 @@ class BedrockConverseLLM(BaseAWSLLM):
                     json_mode=json_mode,
                     fake_stream=fake_stream,
                     credentials=credentials,
-                    api_key=api_key
+                    api_key=api_key,
                 )  # type: ignore
             ### ASYNC COMPLETION
             return self.async_completion(
@@ -383,7 +383,7 @@ class BedrockConverseLLM(BaseAWSLLM):
                 timeout=timeout,
                 client=client,
                 credentials=credentials,
-                api_key=api_key
+                api_key=api_key,
             )  # type: ignore
 
         ## TRANSFORMATION ##
@@ -404,7 +404,7 @@ class BedrockConverseLLM(BaseAWSLLM):
             endpoint_url=proxy_endpoint_url,
             data=data,
             headers=headers,
-            api_key=api_key
+            api_key=api_key,
         )
 
         ## LOGGING
