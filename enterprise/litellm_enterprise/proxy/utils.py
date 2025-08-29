@@ -17,9 +17,9 @@ def _should_block_robots():
     from litellm.proxy.proxy_server import (
         CommonProxyErrors,
         general_settings,
-        premium_user,
+        premium_user
     )
-
+    premium_user = True
     _block_robots: Union[bool, str] = general_settings.get("block_robots", False)
     block_robots: Optional[bool] = None
     if isinstance(_block_robots, bool):

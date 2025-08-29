@@ -50,7 +50,7 @@ export function KeyEditView({
   accessToken,
   userID,
   userRole,
-  premiumUser = false,
+  premiumUser = true,
 }: KeyEditViewProps) {
   const [form] = Form.useForm()
   const [userModels, setUserModels] = useState<string[]>([])

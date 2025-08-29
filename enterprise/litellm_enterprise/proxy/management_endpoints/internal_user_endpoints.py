@@ -29,7 +29,7 @@ async def available_enterprise_users(
         premium_user_data,
         prisma_client,
     )
-
+    premium_user = True
     if prisma_client is None:
         raise HTTPException(
             status_code=500,

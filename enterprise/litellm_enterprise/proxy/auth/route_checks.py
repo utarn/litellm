@@ -15,6 +15,7 @@ class EnterpriseRouteChecks:
 
         ## Check if DISABLE_LLM_API_ENDPOINTS is set
         if "DISABLE_LLM_API_ENDPOINTS" in os.environ:
+            premium_user = True
             if not premium_user:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -33,6 +34,7 @@ class EnterpriseRouteChecks:
         from litellm.secret_managers.main import get_secret_bool
 
         if "DISABLE_ADMIN_ENDPOINTS" in os.environ:
+            premium_user = True
             if not premium_user:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

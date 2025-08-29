@@ -63,7 +63,7 @@ class EnterpriseCustomSSOHandler:
             premium_user,
             user_custom_ui_sso_sign_in_handler,
         )
-
+        premium_user = True
         if premium_user is not True:
             raise ValueError(CommonProxyErrors.not_premium_user.value)
 

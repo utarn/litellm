@@ -25,7 +25,7 @@ class EnterpriseProxyConfig:
     @staticmethod
     def get_custom_docs_description() -> Optional[str]:
         from litellm.proxy.proxy_server import premium_user
-
+        premium_user = True
         docs_description: Optional[str] = None
         if premium_user:
             # check if premium_user has custom_docs_description

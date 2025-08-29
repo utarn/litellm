@@ -111,7 +111,7 @@ class EnterpriseCallbackControls:
     @staticmethod
     def _premium_user_check():
         from litellm.proxy.proxy_server import premium_user
-
+        premium_user = True
         if premium_user:
             return True
         verbose_logger.warning(

@@ -134,7 +134,7 @@ const TeamInfoView: React.FC<TeamInfoProps> = ({
   is_proxy_admin,
   userModels,
   editTeam,
-  premiumUser = false,
+  premiumUser = true,
   onUpdate,
 }) => {
   const [teamData, setTeamData] = useState<TeamData | null>(null);

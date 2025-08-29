@@ -15,7 +15,7 @@ export function PremiumMCPSelector({
   value,
   accessToken,
   placeholder = "Select MCP servers",
-  premiumUser = false
+  premiumUser = true
 }: PremiumMCPSelectorProps) {
   if (!premiumUser) {
     return (

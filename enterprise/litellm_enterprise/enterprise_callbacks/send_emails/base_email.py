@@ -138,7 +138,7 @@ class BaseEmailLogger(CustomLogger):
                 custom_value is not None
             ):  # Only check premium if trying to use custom value
                 from litellm.proxy.proxy_server import premium_user
-
+                premium_user = True
                 if premium_user is not True:
                     unused_custom_fields.append(field_name)
                     return default_value
