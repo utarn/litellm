@@ -1526,7 +1526,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"CohereException - {original_exception.message}",
                             llm_provider="cohere",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
                     raise original_exception
             elif custom_llm_provider == "huggingface":
@@ -1601,7 +1601,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"HuggingfaceException - {original_exception.message}",
                             llm_provider="huggingface",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
             elif custom_llm_provider == "ai21":
                 if hasattr(original_exception, "message"):
@@ -1660,7 +1660,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"AI21Exception - {original_exception.message}",
                             llm_provider="ai21",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
             elif custom_llm_provider == "nlp_cloud":
                 if "detail" in error_str:
@@ -1687,7 +1687,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"NLPCloudException - {error_str}",
                             model=model,
                             llm_provider="nlp_cloud",
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
                 if hasattr(
                     original_exception, "status_code"
@@ -1747,7 +1747,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"NLPCloudException - {original_exception.message}",
                             llm_provider="nlp_cloud",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
                     elif (
                         original_exception.status_code == 504
@@ -1767,7 +1767,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"NLPCloudException - {original_exception.message}",
                             llm_provider="nlp_cloud",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
             elif custom_llm_provider == "together_ai":
                 try:
@@ -1876,7 +1876,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                         message=f"TogetherAIException - {original_exception.message}",
                         llm_provider="together_ai",
                         model=model,
-                        request=original_exception.request,
+                        request=getattr(original_exception, "request", None),
                     )
             elif custom_llm_provider == "aleph_alpha":
                 if (
@@ -1981,7 +1981,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"VLLMException - {original_exception.message}",
                             llm_provider="vllm",
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                         )
             elif custom_llm_provider == "azure" or custom_llm_provider == "azure_text":
                 message = get_error_message(error_obj=original_exception)
@@ -2236,7 +2236,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                             message=f"APIError: {exception_provider} - {error_str}",
                             llm_provider=custom_llm_provider,
                             model=model,
-                            request=original_exception.request,
+                            request=getattr(original_exception, "request", None),
                             litellm_debug_info=extra_information,
                         )
                 else:
@@ -2271,7 +2271,7 @@ def exception_type(  # type: ignore  # noqa: PLR0915
                     message="{} - {}".format(exception_provider, error_str),
                     llm_provider=custom_llm_provider,
                     model=model,
-                    request=original_exception.request,
+                    request=getattr(original_exception, "request", None),
                 )
             else:
                 raise APIConnectionError(

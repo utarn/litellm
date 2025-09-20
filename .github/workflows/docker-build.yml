@@ -3,7 +3,9 @@ name: Docker Build and Notify
 on:
   push:
     branches:
-      - vv1.74.9-stable.patch.1
+      - '**'
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -22,9 +24,14 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set image tag
-        id: tag
-        run: echo "tag=$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: registry2.zarimpun.com/utarn/litellm
+          tags: |
+            type=raw,value={{tag}},enable={{is_tag}}
+            type=raw,value={{date 'YYYYMMDD-HHmm'}},enable={{is_default_branch}}
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
@@ -32,9 +39,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            registry2.zarimpun.com/utarn/litellm:latest
-            registry2.zarimpun.com/utarn/litellm:${{ steps.tag.outputs.tag }}
+          tags: ${{ steps.meta.outputs.tags }}
 
       - name: Notify via LINE OA API
         env:
