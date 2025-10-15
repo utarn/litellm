@@ -1320,8 +1320,13 @@ def _can_object_call_model(
         ):
             return True
 
+    # Log detailed information to console
+    detailed_message = f"{object_type} not allowed to access model. This {object_type} can only access models={models}. Tried to access {model}"
+    verbose_proxy_logger.error(detailed_message)
+    
+    # Return only the simple message to the user
     raise ProxyException(
-        message=f"{object_type} not allowed to access model. This {object_type} can only access models={models}. Tried to access {model}",
+        message=f"401 {object_type} not allowed to access model.",
         type=ProxyErrorTypes.get_model_access_error_type_for_object(
             object_type=object_type
         ),
