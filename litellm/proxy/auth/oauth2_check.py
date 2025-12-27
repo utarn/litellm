@@ -220,3 +220,13 @@ class Oauth2Handler:
         except Exception as e:
             # This will catch any other errors (like network issues)
             raise ValueError(f"An error occurred during token validation: {e}")
+
+
+# Module-level function for backward compatibility
+# This allows imports like: from litellm.proxy.auth.oauth2_check import check_oauth2_token
+async def check_oauth2_token(token: str) -> UserAPIKeyAuth:
+    """
+    Module-level wrapper for Oauth2Handler.check_oauth2_token
+    Maintains backward compatibility with existing imports.
+    """
+    return await Oauth2Handler.check_oauth2_token(token)
