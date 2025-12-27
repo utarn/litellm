@@ -11,7 +11,6 @@ from litellm_enterprise.types.enterprise_callbacks.send_emails import (
     EmailEvent,
     EmailParams,
     SendKeyCreatedEmailEvent,
-    SendKeyRotatedEmailEvent,
 )
 
 from litellm._logging import verbose_proxy_logger
@@ -20,14 +19,10 @@ from litellm.integrations.email_templates.email_footer import EMAIL_FOOTER
 from litellm.integrations.email_templates.key_created_email import (
     KEY_CREATED_EMAIL_TEMPLATE,
 )
-from litellm.integrations.email_templates.key_rotated_email import (
-    KEY_ROTATED_EMAIL_TEMPLATE,
-)
 from litellm.integrations.email_templates.user_invitation_email import (
     USER_INVITATION_EMAIL_TEMPLATE,
 )
 from litellm.proxy._types import InvitationNew, UserAPIKeyAuth, WebhookEvent
-from litellm.secret_managers.main import get_secret_bool
 from litellm.types.integrations.slack_alerting import LITELLM_LOGO_URL
 
 
@@ -37,7 +32,6 @@ class BaseEmailLogger(CustomLogger):
     DEFAULT_SUBJECT_TEMPLATES = {
         EmailEvent.new_user_invitation: "LiteLLM: {event_message}",
         EmailEvent.virtual_key_created: "LiteLLM: {event_message}",
-        EmailEvent.virtual_key_rotated: "LiteLLM: {event_message}",
     }
 
     async def send_user_invitation_email(self, event: WebhookEvent):
@@ -89,58 +83,11 @@ class BaseEmailLogger(CustomLogger):
             f"send_key_created_email_event: {json.dumps(send_key_created_email_event, indent=4, default=str)}"
         )
 
-        # Check if API key should be included in email
-        include_api_key = get_secret_bool(secret_name="EMAIL_INCLUDE_API_KEY", default_value=True)
-        if include_api_key is None:
-            include_api_key = True  # Default to True if not set
-        key_token_display = send_key_created_email_event.virtual_key if include_api_key else "[Key hidden for security - retrieve from dashboard]"
-
         email_html_content = KEY_CREATED_EMAIL_TEMPLATE.format(
             email_logo_url=email_params.logo_url,
             recipient_email=email_params.recipient_email,
             key_budget=self._format_key_budget(send_key_created_email_event.max_budget),
-            key_token=key_token_display,
-            base_url=email_params.base_url,
-            email_support_contact=email_params.support_contact,
-            email_footer=email_params.signature,
-        )
-
-        await self.send_email(
-            from_email=self.DEFAULT_LITELLM_EMAIL,
-            to_email=[email_params.recipient_email],
-            subject=email_params.subject,
-            html_body=email_html_content,
-        )
-        pass
-
-    async def send_key_rotated_email(
-        self, send_key_rotated_email_event: SendKeyRotatedEmailEvent
-    ):
-        """
-        Send email to user after rotating key for the user
-        """
-        email_params = await self._get_email_params(
-            user_id=send_key_rotated_email_event.user_id,
-            user_email=send_key_rotated_email_event.user_email,
-            email_event=EmailEvent.virtual_key_rotated,
-            event_message=send_key_rotated_email_event.event_message,
-        )
-
-        verbose_proxy_logger.debug(
-            f"send_key_rotated_email_event: {json.dumps(send_key_rotated_email_event, indent=4, default=str)}"
-        )
-
-        # Check if API key should be included in email
-        include_api_key = get_secret_bool(secret_name="EMAIL_INCLUDE_API_KEY", default_value=True)
-        if include_api_key is None:
-            include_api_key = True  # Default to True if not set
-        key_token_display = send_key_rotated_email_event.virtual_key if include_api_key else "[Key hidden for security - retrieve from dashboard]"
-
-        email_html_content = KEY_ROTATED_EMAIL_TEMPLATE.format(
-            email_logo_url=email_params.logo_url,
-            recipient_email=email_params.recipient_email,
-            key_budget=self._format_key_budget(send_key_rotated_email_event.max_budget),
-            key_token=key_token_display,
+            key_token=send_key_created_email_event.virtual_key,
             base_url=email_params.base_url,
             email_support_contact=email_params.support_contact,
             email_footer=email_params.signature,
@@ -184,9 +131,14 @@ class BaseEmailLogger(CustomLogger):
         unused_custom_fields = []
 
         # Function to safely get custom value or default
-        def get_custom_or_default(custom_value: Optional[str], default_value: str, field_name: str) -> str:
-            if custom_value is not None:  # Only check premium if trying to use custom value
+        def get_custom_or_default(
+            custom_value: Optional[str], default_value: str, field_name: str
+        ) -> str:
+            if (
+                custom_value is not None
+            ):  # Only check premium if trying to use custom value
                 from litellm.proxy.proxy_server import premium_user
+
                 if premium_user is not True:
                     unused_custom_fields.append(field_name)
                     return default_value
@@ -195,34 +147,37 @@ class BaseEmailLogger(CustomLogger):
 
         # Get parameters, falling back to defaults if custom values aren't allowed
         logo_url = get_custom_or_default(custom_logo, LITELLM_LOGO_URL, "logo URL")
-        support_contact = get_custom_or_default(custom_support, self.DEFAULT_SUPPORT_EMAIL, "support contact")
-        base_url = os.getenv("PROXY_BASE_URL", "http://0.0.0.0:4000")  # Not a premium feature
-        signature = get_custom_or_default(custom_signature, EMAIL_FOOTER, "email signature")
+        support_contact = get_custom_or_default(
+            custom_support, self.DEFAULT_SUPPORT_EMAIL, "support contact"
+        )
+        base_url = os.getenv(
+            "PROXY_BASE_URL", "http://0.0.0.0:4000"
+        )  # Not a premium feature
+        signature = get_custom_or_default(
+            custom_signature, EMAIL_FOOTER, "email signature"
+        )
 
         # Get custom subject template based on email event type
         if email_event == EmailEvent.new_user_invitation:
             subject_template = get_custom_or_default(
                 custom_subject_invitation,
                 self.DEFAULT_SUBJECT_TEMPLATES[EmailEvent.new_user_invitation],
-                "invitation subject template"
+                "invitation subject template",
             )
         elif email_event == EmailEvent.virtual_key_created:
             subject_template = get_custom_or_default(
                 custom_subject_key_created,
                 self.DEFAULT_SUBJECT_TEMPLATES[EmailEvent.virtual_key_created],
-                "key created subject template"
-            )
-        elif email_event == EmailEvent.virtual_key_rotated:
-            custom_subject_key_rotated = os.getenv("EMAIL_SUBJECT_KEY_ROTATED", None)
-            subject_template = get_custom_or_default(
-                custom_subject_key_rotated,
-                self.DEFAULT_SUBJECT_TEMPLATES[EmailEvent.virtual_key_rotated],
-                "key rotated subject template"
+                "key created subject template",
             )
         else:
             subject_template = "LiteLLM: {event_message}"
 
-        subject = subject_template.format(event_message=event_message) if event_message else "LiteLLM Notification"
+        subject = (
+            subject_template.format(event_message=event_message)
+            if event_message
+            else "LiteLLM Notification"
+        )
 
         recipient_email: Optional[
             str
@@ -246,9 +201,7 @@ class BaseEmailLogger(CustomLogger):
                 "This is an Enterprise feature. To use custom email fields, please upgrade to LiteLLM Enterprise. "
                 "Schedule a meeting here: https://calendly.com/d/4mp-gd3-k5k/litellm-1-1-onboarding-chat"
             )
-            verbose_proxy_logger.warning(
-                f"{warning_msg}"
-            )
+            verbose_proxy_logger.warning(f"{warning_msg}")
 
         return EmailParams(
             logo_url=logo_url,
@@ -295,44 +248,49 @@ class BaseEmailLogger(CustomLogger):
         if not user_id:
             verbose_proxy_logger.debug("No user_id provided for invitation link")
             return base_url
-            
+
         if not await self._is_prisma_client_available():
             return base_url
-            
+
         # Wait for any concurrent invitation creation to complete
         await self._wait_for_invitation_creation()
-        
+
         # Get or create invitation
         invitation = await self._get_or_create_invitation(user_id)
         if not invitation:
-            verbose_proxy_logger.warning(f"Failed to get/create invitation for user_id: {user_id}")
+            verbose_proxy_logger.warning(
+                f"Failed to get/create invitation for user_id: {user_id}"
+            )
             return base_url
-            
+
         return self._construct_invitation_link(invitation.id, base_url)
 
     async def _is_prisma_client_available(self) -> bool:
         """Check if Prisma client is available"""
         from litellm.proxy.proxy_server import prisma_client
-        
+
         if prisma_client is None:
-            verbose_proxy_logger.debug("Prisma client not found. Unable to lookup invitation")
+            verbose_proxy_logger.debug(
+                "Prisma client not found. Unable to lookup invitation"
+            )
             return False
         return True
 
     async def _wait_for_invitation_creation(self) -> None:
         """
         Wait for any concurrent invitation creation to complete.
-        
+
         The UI calls /invitation/new to generate the invitation link.
         We wait to ensure any pending invitation creation is completed.
         """
         import asyncio
+
         await asyncio.sleep(10)
 
     async def _get_or_create_invitation(self, user_id: str):
         """
         Get existing invitation or create a new one for the user
-        
+
         Returns:
             Invitation object with id attribute, or None if failed
         """
@@ -340,31 +298,41 @@ class BaseEmailLogger(CustomLogger):
             create_invitation_for_user,
         )
         from litellm.proxy.proxy_server import prisma_client
-        
+
         if prisma_client is None:
-            verbose_proxy_logger.error("Prisma client is None in _get_or_create_invitation")
+            verbose_proxy_logger.error(
+                "Prisma client is None in _get_or_create_invitation"
+            )
             return None
-            
+
         try:
             # Try to get existing invitation
-            existing_invitations = await prisma_client.db.litellm_invitationlink.find_many(
-                where={"user_id": user_id},
-                order={"created_at": "desc"},
+            existing_invitations = (
+                await prisma_client.db.litellm_invitationlink.find_many(
+                    where={"user_id": user_id},
+                    order={"created_at": "desc"},
+                )
             )
-            
+
             if existing_invitations and len(existing_invitations) > 0:
-                verbose_proxy_logger.debug(f"Found existing invitation for user_id: {user_id}")
+                verbose_proxy_logger.debug(
+                    f"Found existing invitation for user_id: {user_id}"
+                )
                 return existing_invitations[0]
-            
+
             # Create new invitation if none exists
-            verbose_proxy_logger.debug(f"Creating new invitation for user_id: {user_id}")
+            verbose_proxy_logger.debug(
+                f"Creating new invitation for user_id: {user_id}"
+            )
             return await create_invitation_for_user(
                 data=InvitationNew(user_id=user_id),
                 user_api_key_dict=UserAPIKeyAuth(user_id=user_id),
             )
-            
+
         except Exception as e:
-            verbose_proxy_logger.error(f"Error getting/creating invitation for user_id {user_id}: {e}")
+            verbose_proxy_logger.error(
+                f"Error getting/creating invitation for user_id {user_id}: {e}"
+            )
             return None
 
     def _construct_invitation_link(self, invitation_id: str, base_url: str) -> str:
