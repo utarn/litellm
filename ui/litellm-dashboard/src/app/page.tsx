@@ -77,7 +77,7 @@ interface ProxySettings {
 
 function CreateKeyPageContent() {
   const [userRole, setUserRole] = useState("");
-  const [premiumUser, setPremiumUser] = useState(false);
+  const [premiumUser, setPremiumUser] = useState(true);  // Always true - premium features unlocked
   const [disabledPersonalKeyCreation, setDisabledPersonalKeyCreation] = useState(false);
   const [userEmail, setUserEmail] = useState<null | string>(null);
   const [teams, setTeams] = useState<Team[] | null>(null);
@@ -320,9 +320,7 @@ function CreateKeyPageContent() {
         setShowSSOBanner(decoded.login_method == "username_password" ? true : false);
       }
 
-      if (decoded.premium_user) {
-        setPremiumUser(decoded.premium_user);
-      }
+      // premiumUser is always true - no need to update from decoded token
 
       if (decoded.auth_header_name) {
         setGlobalLitellmHeaderName(decoded.auth_header_name);
