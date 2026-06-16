@@ -30,6 +30,31 @@ else:
     EndpointType = Any
 
 
+def _resolve_model_id_from_litellm_params(litellm_params: Any) -> Optional[str]:
+    """
+    Extract the deployment model_id (model_info["id"]) from the logging metadata.
+
+    This is the most reliable source for /v1/messages passthrough: the response's
+    _hidden_params and request_body model are not guaranteed to carry the router
+    alias the deployments are keyed by (the upstream may rewrite model, and the
+    passthrough response is built with empty litellm_params). The logging metadata
+    is populated by the standard logging flow and is where SpendLogs.model_id is
+    sourced from.
+    """
+    if not isinstance(litellm_params, dict):
+        return None
+    for metadata_key in ("metadata", "litellm_metadata"):
+        try:
+            metadata = litellm_params.get(metadata_key) or {}
+            model_info = metadata.get("model_info") or {}
+            model_id = model_info.get("id")
+            if isinstance(model_id, str) and model_id:
+                return model_id
+        except Exception:
+            continue
+    return None
+
+
 class AnthropicPassthroughLoggingHandler:
     @staticmethod
     def anthropic_passthrough_handler(
@@ -145,6 +170,9 @@ class AnthropicPassthroughLoggingHandler:
             hidden_params = getattr(litellm_model_response, "_hidden_params", {}) or {}
             router_model_id = hidden_params.get("model_id")
             if router_model_id is None:
+                # Most reliable for passthrough: model_info["id"] in logging metadata
+                router_model_id = _resolve_model_id_from_litellm_params(litellm_params)
+            if router_model_id is None:
                 router_model_id = model_call_details.get("model_id")
             if router_model_id is None and isinstance(request_body, dict):
                 request_model = request_body.get("model")
@@ -169,7 +197,7 @@ class AnthropicPassthroughLoggingHandler:
             name_entry = litellm.model_cost.get(model_for_cost) or {}
             id_entry = litellm.model_cost.get(router_model_id) or {}
             usage_obj = getattr(litellm_model_response, "usage", None)
-            verbose_proxy_logger.info(
+            verbose_proxy_logger.warning(
                 "[PASSTHROUGH_COST_DEBUG] model=%r model_for_cost=%r "
                 "custom_llm_provider=%r request_body_model=%r custom_pricing=%r "
                 "hidden_model_id=%r details_model_id=%r resolved_router_model_id=%r "
