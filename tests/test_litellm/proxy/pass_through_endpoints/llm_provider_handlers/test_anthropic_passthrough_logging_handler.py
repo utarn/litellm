@@ -355,6 +355,68 @@ class TestAzureAnthropicCostCalculation:
         assert "response_cost" in kwargs
         assert kwargs["response_cost"] > 0
 
+    def test_passthrough_logging_uses_custom_pricing_via_model_id(self):
+        """
+        Custom pricing for a /v1/messages passthrough deployment is registered
+        under the deployment model_id, not the bare model name (which is
+        registered cost-stripped). Ensure the handler resolves the model_id and
+        computes a non-zero cost instead of falling back to the stripped name ($0).
+        """
+        import litellm
+        from litellm.types.utils import Choices, Message, ModelResponse
+
+        model_id = "test-passthrough-custom-pricing-id"
+        custom_model_name = "my-custom-anthropic-model"
+        # Mirrors router._create_deployment: full pricing under model_id
+        pricing_entry = {
+            "input_cost_per_token": 0.001,
+            "output_cost_per_token": 0.002,
+            "litellm_provider": "anthropic",
+            "mode": "chat",
+            "max_tokens": 4096,
+            "max_input_tokens": 4096,
+            "max_output_tokens": 4096,
+        }
+        litellm.model_cost[model_id] = pricing_entry
+        try:
+            logging_obj = self._create_mock_logging_obj(
+                model=custom_model_name, custom_llm_provider="anthropic"
+            )
+            # /messages passthrough stores model_info under litellm_metadata
+            logging_obj.litellm_params = {
+                "litellm_metadata": {"model_info": pricing_entry}
+            }
+            logging_obj.model_call_details["model_id"] = model_id
+
+            response = ModelResponse(
+                id="test-id",
+                choices=[
+                    Choices(
+                        finish_reason="stop",
+                        index=0,
+                        message=Message(content="test", role="assistant"),
+                    )
+                ],
+                created=1234567890,
+                model=custom_model_name,
+                usage={"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+            )
+
+            kwargs = AnthropicPassthroughLoggingHandler._create_anthropic_response_logging_payload(
+                litellm_model_response=response,
+                model=custom_model_name,
+                kwargs={},
+                start_time=datetime.now(),
+                end_time=datetime.now(),
+                logging_obj=logging_obj,
+            )
+
+            assert "response_cost" in kwargs
+            # 10 input * 0.001 + 5 output * 0.002 = 0.02
+            assert kwargs["response_cost"] == pytest.approx(0.02)
+        finally:
+            litellm.model_cost.pop(model_id, None)
+
 
 class TestAnthropicBatchPassthroughCostTracking:
     """Test cases for Anthropic batch passthrough cost tracking functionality"""

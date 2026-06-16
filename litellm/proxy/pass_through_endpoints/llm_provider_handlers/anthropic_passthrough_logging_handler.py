@@ -6,7 +6,10 @@ import httpx
 
 import litellm
 from litellm._logging import verbose_proxy_logger
-from litellm.litellm_core_utils.litellm_logging import Logging as LiteLLMLoggingObj
+from litellm.litellm_core_utils.litellm_logging import (
+    Logging as LiteLLMLoggingObj,
+)
+from litellm.litellm_core_utils.litellm_logging import use_custom_pricing_for_model
 from litellm.llms.anthropic import get_anthropic_config
 from litellm.llms.anthropic.chat.handler import (
     ModelResponseIterator as AnthropicModelResponseIterator,
@@ -83,6 +86,7 @@ class AnthropicPassthroughLoggingHandler:
             start_time=start_time,
             end_time=end_time,
             logging_obj=logging_obj,
+            request_body=request_body,
         )
 
         return {
@@ -107,6 +111,7 @@ class AnthropicPassthroughLoggingHandler:
         start_time: datetime,
         end_time: datetime,
         logging_obj: LiteLLMLoggingObj,
+        request_body: Optional[dict] = None,
     ):
         """
         Create the standard logging object for Anthropic passthrough
@@ -115,19 +120,74 @@ class AnthropicPassthroughLoggingHandler:
         """
         try:
             # Get custom_llm_provider from logging object if available (e.g., azure_ai for Azure Anthropic)
-            custom_llm_provider = logging_obj.model_call_details.get(
-                "custom_llm_provider"
-            )
+            model_call_details = getattr(logging_obj, "model_call_details", None)
+            if not isinstance(model_call_details, dict):
+                model_call_details = {}
+            custom_llm_provider = model_call_details.get("custom_llm_provider")
 
             # Prepend custom_llm_provider to model if not already present
             model_for_cost = model
             if custom_llm_provider and not model.startswith(f"{custom_llm_provider}/"):
                 model_for_cost = f"{custom_llm_provider}/{model}"
 
+            # Custom pricing for a deployment is registered under the deployment's
+            # auto-generated model_id (a UUID); the provider-prefixed model name is
+            # deliberately registered WITHOUT pricing (see router._create_deployment).
+            # Resolve the model_id so cost calc uses the priced entry instead of the
+            # cost-stripped name (which resolves to $0).
+            litellm_params = getattr(logging_obj, "litellm_params", None)
+            custom_pricing = (
+                use_custom_pricing_for_model(litellm_params)
+                if isinstance(litellm_params, dict)
+                else False
+            )
+
+            hidden_params = getattr(litellm_model_response, "_hidden_params", {}) or {}
+            router_model_id = hidden_params.get("model_id")
+            if router_model_id is None:
+                router_model_id = model_call_details.get("model_id")
+            if router_model_id is None and isinstance(request_body, dict):
+                request_model = request_body.get("model")
+                if isinstance(request_model, str) and request_model:
+                    # request_body model is the alias the router is keyed by
+                    router_model_id = (
+                        AnthropicPassthroughLoggingHandler.get_actual_model_id_from_router(
+                            model_name=request_model
+                        )
+                    )
+
             response_cost = litellm.completion_cost(
                 completion_response=litellm_model_response,
                 model=model_for_cost,
                 custom_llm_provider=custom_llm_provider,
+                custom_pricing=custom_pricing,
+                router_model_id=router_model_id,
+            )
+
+            # [PASSTHROUGH_COST_DEBUG] temporary diagnostic - safe to remove once
+            # custom pricing is confirmed working for /v1/messages passthrough.
+            name_entry = litellm.model_cost.get(model_for_cost) or {}
+            id_entry = litellm.model_cost.get(router_model_id) or {}
+            usage_obj = getattr(litellm_model_response, "usage", None)
+            verbose_proxy_logger.info(
+                "[PASSTHROUGH_COST_DEBUG] model=%r model_for_cost=%r "
+                "custom_llm_provider=%r request_body_model=%r custom_pricing=%r "
+                "hidden_model_id=%r details_model_id=%r resolved_router_model_id=%r "
+                "name_entry_input_cost=%r id_entry_input_cost=%r "
+                "prompt_tokens=%s completion_tokens=%s response_cost=%r",
+                model,
+                model_for_cost,
+                custom_llm_provider,
+                request_body.get("model") if isinstance(request_body, dict) else None,
+                custom_pricing,
+                hidden_params.get("model_id"),
+                model_call_details.get("model_id"),
+                router_model_id,
+                name_entry.get("input_cost_per_token"),
+                id_entry.get("input_cost_per_token"),
+                getattr(usage_obj, "prompt_tokens", None),
+                getattr(usage_obj, "completion_tokens", None),
+                response_cost,
             )
 
             kwargs["response_cost"] = response_cost
@@ -216,6 +276,7 @@ class AnthropicPassthroughLoggingHandler:
             start_time=start_time,
             end_time=end_time,
             logging_obj=litellm_logging_obj,
+            request_body=request_body,
         )
 
         return {
