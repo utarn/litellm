@@ -139,6 +139,22 @@ def test_get_cost_for_anthropic_web_search():
     assert cost > 0.0
 
 
+def test_get_cost_for_anthropic_web_search_with_server_tool_use_dict():
+    """
+    Anthropic-compatible passthrough responses can construct Usage from a raw
+    usage payload. Ensure dict server_tool_use values are normalized before
+    built-in tool cost tracking reads server_tool_use.web_search_requests.
+    """
+    from litellm.types.utils import ServerToolUse, Usage
+
+    usage = Usage(server_tool_use={"web_search_requests": 1})
+
+    assert isinstance(usage.server_tool_use, ServerToolUse)
+    assert StandardBuiltInToolCostTracking.response_object_includes_web_search_call(
+        response_object=None, usage=usage
+    )
+
+
 @pytest.mark.parametrize(
     "model", ["gemini/gemini-2.0-flash-001", "gemini-2.0-flash-001"]
 )
