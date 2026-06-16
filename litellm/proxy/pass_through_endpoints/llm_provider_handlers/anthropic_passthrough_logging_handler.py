@@ -192,6 +192,26 @@ class AnthropicPassthroughLoggingHandler:
                 router_model_id=router_model_id,
             )
 
+            # Persist the computed cost so the standard logging path uses it
+            # instead of recomputing. _process_hidden_params_and_response_cost
+            # otherwise falls through to _response_cost_calculator, which cannot
+            # resolve the model_id for passthrough (response built with empty
+            # litellm_params) and records $0. Mirrors Gemini/Vertex handlers.
+            try:
+                _resp_hidden = getattr(litellm_model_response, "_hidden_params", None)
+                if isinstance(_resp_hidden, dict):
+                    _resp_hidden["response_cost"] = response_cost
+                else:
+                    litellm_model_response._hidden_params = {  # type: ignore
+                        "response_cost": response_cost
+                    }
+            except Exception:
+                pass
+            try:
+                logging_obj.model_call_details["response_cost"] = response_cost
+            except Exception:
+                pass
+
             # [PASSTHROUGH_COST_DEBUG] temporary diagnostic - safe to remove once
             # custom pricing is confirmed working for /v1/messages passthrough.
             name_entry = litellm.model_cost.get(model_for_cost) or {}
