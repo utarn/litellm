@@ -212,32 +212,6 @@ class AnthropicPassthroughLoggingHandler:
             except Exception:
                 pass
 
-            # [PASSTHROUGH_COST_DEBUG] temporary diagnostic - safe to remove once
-            # custom pricing is confirmed working for /v1/messages passthrough.
-            name_entry = litellm.model_cost.get(model_for_cost) or {}
-            id_entry = litellm.model_cost.get(router_model_id) or {}
-            usage_obj = getattr(litellm_model_response, "usage", None)
-            verbose_proxy_logger.warning(
-                "[PASSTHROUGH_COST_DEBUG] model=%r model_for_cost=%r "
-                "custom_llm_provider=%r request_body_model=%r custom_pricing=%r "
-                "hidden_model_id=%r details_model_id=%r resolved_router_model_id=%r "
-                "name_entry_input_cost=%r id_entry_input_cost=%r "
-                "prompt_tokens=%s completion_tokens=%s response_cost=%r",
-                model,
-                model_for_cost,
-                custom_llm_provider,
-                request_body.get("model") if isinstance(request_body, dict) else None,
-                custom_pricing,
-                hidden_params.get("model_id"),
-                model_call_details.get("model_id"),
-                router_model_id,
-                name_entry.get("input_cost_per_token"),
-                id_entry.get("input_cost_per_token"),
-                getattr(usage_obj, "prompt_tokens", None),
-                getattr(usage_obj, "completion_tokens", None),
-                response_cost,
-            )
-
             kwargs["response_cost"] = response_cost
             kwargs["model"] = model
             passthrough_logging_payload: Optional[PassthroughStandardLoggingPayload] = (  # type: ignore
