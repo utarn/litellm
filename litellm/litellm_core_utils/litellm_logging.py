@@ -5371,7 +5371,10 @@ def get_standard_logging_object_payload(
             init_response_obj=init_response_obj,
             api_base=litellm_params.get("api_base"),
         )
-        response_cost: float = kwargs.get("response_cost", 0) or 0.0
+        _response_cost = kwargs.get("response_cost", 0)
+        if not _response_cost and logging_obj.cost_breakdown is not None:
+            _response_cost = logging_obj.cost_breakdown.get("total_cost")
+        response_cost: float = _response_cost or 0.0
 
         error_information = StandardLoggingPayloadSetup.get_error_information(
             original_exception=original_exception,

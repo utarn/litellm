@@ -665,6 +665,80 @@ def test_cost_breakdown_in_standard_logging_payload():
     print("✅ Cost breakdown test passed!")
 
 
+@pytest.mark.parametrize(
+    "response_cost_value",
+    [None, 0.0],
+)
+def test_response_cost_falls_back_to_cost_breakdown(response_cost_value):
+    """
+    Regression: for some passthrough/streaming requests the per-call
+    response_cost gets dropped from model_call_details while cost_breakdown is
+    still computed. The spend written to the SpendLogs row (payload
+    response_cost) must fall back to the breakdown's total_cost instead of $0.
+    """
+    from litellm.litellm_core_utils.litellm_logging import (
+        get_standard_logging_object_payload,
+        Logging,
+    )
+
+    logging_obj = Logging(
+        model="anthropic/glm-5.2",
+        messages=[{"role": "user", "content": "Hello"}],
+        stream=True,
+        call_type="anthropic_messages",
+        start_time=datetime.now(),
+        litellm_call_id="test-456",
+        function_id="test-function",
+    )
+
+    logging_obj.set_cost_breakdown(
+        input_cost=0.001,
+        output_cost=0.002,
+        total_cost=0.08301095,
+        cost_for_built_in_tools_cost_usd_dollar=0.0,
+    )
+
+    mock_response = {
+        "id": "chatcmpl-456",
+        "object": "chat.completion",
+        "model": "glm-5.2",
+        "usage": {
+            "prompt_tokens": 80727,
+            "completion_tokens": 1295,
+            "total_tokens": 82022,
+        },
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": "Hi"},
+                "finish_reason": "stop",
+            }
+        ],
+    }
+
+    kwargs = {
+        "model": "glm-5.2",
+        "messages": [{"role": "user", "content": "Hello"}],
+        "custom_llm_provider": "anthropic",
+    }
+    if response_cost_value is not None:
+        kwargs["response_cost"] = response_cost_value
+
+    payload = get_standard_logging_object_payload(
+        kwargs=kwargs,
+        init_response_obj=mock_response,
+        start_time=datetime.now(),
+        end_time=datetime.now(),
+        logging_obj=logging_obj,
+        status="success",
+    )
+
+    assert payload is not None
+    assert payload["cost_breakdown"] is not None
+    assert payload["cost_breakdown"]["total_cost"] == 0.08301095
+    assert payload["response_cost"] == 0.08301095
+
+
 def test_cost_breakdown_missing_in_standard_logging_payload():
     """
     Test that cost breakdown field is None when not available (e.g., for embedding calls)
