@@ -190,6 +190,12 @@ class AnthropicPassthroughLoggingHandler:
                 custom_llm_provider=custom_llm_provider,
                 custom_pricing=custom_pricing,
                 router_model_id=router_model_id,
+                # Pass the logging object so completion_cost stores the per-component
+                # cost breakdown (input_cost/output_cost/total_cost) on it. Without this,
+                # only the scalar response_cost is computed and logging_obj.cost_breakdown
+                # is never populated, so the request-detail "Cost Breakdown" card shows $0
+                # for every component even though the spend (total) is correct.
+                litellm_logging_obj=logging_obj,
             )
 
             # Persist the computed cost so the standard logging path uses it

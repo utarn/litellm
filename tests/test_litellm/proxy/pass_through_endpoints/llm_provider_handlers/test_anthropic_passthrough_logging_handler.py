@@ -478,6 +478,81 @@ class TestAzureAnthropicCostCalculation:
         finally:
             litellm.model_cost.pop(model_id, None)
 
+    def test_passthrough_logging_populates_cost_breakdown(self):
+        """
+        The /v1/messages passthrough handler must populate logging_obj.cost_breakdown
+        (input_cost/output_cost/total_cost) — not just the scalar response_cost — so the
+        request-detail "Cost Breakdown" card shows correct per-component values instead
+        of $0. completion_cost is called with litellm_logging_obj so it stores the
+        breakdown from the same (priced model_id) computation that produces the total.
+        """
+        import litellm
+        from litellm.litellm_core_utils.litellm_logging import (
+            Logging as RealLiteLLMLoggingObj,
+        )
+        from litellm.types.utils import Choices, Message, ModelResponse
+
+        model_id = "test-passthrough-cost-breakdown-id"
+        custom_model_name = "my-cbd-anthropic-model"
+        pricing_entry = {
+            "input_cost_per_token": 0.001,
+            "output_cost_per_token": 0.002,
+            "litellm_provider": "anthropic",
+            "mode": "chat",
+            "max_tokens": 4096,
+            "max_input_tokens": 4096,
+            "max_output_tokens": 4096,
+        }
+        litellm.model_cost[model_id] = pricing_entry
+        try:
+            logging_obj = RealLiteLLMLoggingObj(
+                model=custom_model_name,
+                messages=[],
+                stream=True,
+                call_type="completion",
+                start_time=datetime.now(),
+                litellm_call_id="test-call-id",
+                function_id="test-fn-id",
+            )
+            logging_obj.litellm_params = {
+                "metadata": {"model_info": {"id": model_id, **pricing_entry}}
+            }
+            logging_obj.model_call_details["custom_llm_provider"] = "anthropic"
+
+            response = ModelResponse(
+                id="test-id",
+                choices=[
+                    Choices(
+                        finish_reason="stop",
+                        index=0,
+                        message=Message(content="test", role="assistant"),
+                    )
+                ],
+                created=1234567890,
+                model=custom_model_name,
+                usage={"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+            )
+
+            kwargs = AnthropicPassthroughLoggingHandler._create_anthropic_response_logging_payload(
+                litellm_model_response=response,
+                model=custom_model_name,
+                kwargs={},
+                start_time=datetime.now(),
+                end_time=datetime.now(),
+                logging_obj=logging_obj,
+                request_body={"model": custom_model_name},
+            )
+
+            # spend (total) is correct
+            assert kwargs["response_cost"] == pytest.approx(0.02)
+            # breakdown components are populated (not all-zero)
+            assert logging_obj.cost_breakdown is not None
+            assert logging_obj.cost_breakdown["input_cost"] == pytest.approx(0.01)
+            assert logging_obj.cost_breakdown["output_cost"] == pytest.approx(0.01)
+            assert logging_obj.cost_breakdown["total_cost"] == pytest.approx(0.02)
+        finally:
+            litellm.model_cost.pop(model_id, None)
+
 
 class TestAnthropicBatchPassthroughCostTracking:
     """Test cases for Anthropic batch passthrough cost tracking functionality"""
