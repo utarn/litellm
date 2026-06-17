@@ -1376,6 +1376,19 @@ class Logging(LiteLLMLoggingBaseClass):
             margin_total_amount: Total margin added in USD
         """
 
+        # Don't let a stripped-name $0 recompute clobber a breakdown that was
+        # already computed with correct custom pricing. For anthropic /v1/messages
+        # passthrough, _update_response_metadata (response-header enrichment) calls
+        # _response_cost_calculator, which resolves the cost-stripped model name and
+        # would overwrite the pass-through handler's correct breakdown with all-zeros
+        # whenever it runs after the handler. Keep the existing non-zero breakdown.
+        if (
+            total_cost == 0
+            and isinstance(self.cost_breakdown, dict)
+            and (self.cost_breakdown.get("total_cost") or 0) > 0
+        ):
+            return
+
         self.cost_breakdown = CostBreakdown(
             input_cost=input_cost,
             output_cost=output_cost,
