@@ -36,7 +36,7 @@ from litellm import (
     log_raw_request_response,
     turn_off_message_logging,
 )
-from litellm._logging import _is_debugging_on, verbose_logger, verbose_proxy_logger
+from litellm._logging import _is_debugging_on, verbose_logger
 from litellm._uuid import uuid
 from litellm.batches.batch_utils import _handle_completed_batch
 from litellm.caching.caching import DualCache, InMemoryCache
@@ -1395,33 +1395,6 @@ class Logging(LiteLLMLoggingBaseClass):
             total_cost=total_cost,
             tool_usage_cost=cost_for_built_in_tools_cost_usd_dollar,
         )
-
-        # [CBD_ZERO_DEBUG] temporary diagnostic: identify any caller that writes an
-        # all-zero cost_breakdown for glm passthrough. After the handler fix the
-        # breakdown should never be zeroed; if this fires, the traceback names the
-        # overwriting call site. Safe to remove once verified.
-        try:
-            _cbd_diag_model = (
-                self.model_call_details.get("model")
-                if isinstance(self.model_call_details, dict)
-                else None
-            )
-            if (
-                _cbd_diag_model
-                and "glm" in str(_cbd_diag_model)
-                and total_cost == 0
-            ):
-                import traceback as _cbd_tb
-
-                verbose_proxy_logger.warning(
-                    "[CBD_ZERO_DEBUG] set_cost_breakdown total=0 input=%r output=%r model=%r\n%s",
-                    input_cost,
-                    output_cost,
-                    _cbd_diag_model,
-                    "".join(_cbd_tb.format_stack()[-8:]),
-                )
-        except Exception:
-            pass
 
         # Store additional costs if provided (free-form dict for extensibility)
         if (
@@ -5415,21 +5388,6 @@ def get_standard_logging_object_payload(
         if not _response_cost and logging_obj.cost_breakdown is not None:
             _response_cost = logging_obj.cost_breakdown.get("total_cost")
         response_cost: float = _response_cost or 0.0
-
-        # [CBD_FINAL_DEBUG] temporary diagnostic: confirm the breakdown that will be
-        # stored on the SpendLogs row for glm is non-zero after the handler fix.
-        # Safe to remove once verified.
-        try:
-            _cbd_final_model = kwargs.get("model") if isinstance(kwargs, dict) else None
-            if _cbd_final_model and "glm" in str(_cbd_final_model):
-                verbose_proxy_logger.warning(
-                    "[CBD_FINAL_DEBUG] model=%r response_cost=%r cost_breakdown=%r",
-                    _cbd_final_model,
-                    response_cost,
-                    logging_obj.cost_breakdown,
-                )
-        except Exception:
-            pass
 
         error_information = StandardLoggingPayloadSetup.get_error_information(
             original_exception=original_exception,
