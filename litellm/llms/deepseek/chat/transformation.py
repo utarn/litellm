@@ -10,7 +10,6 @@ from litellm.litellm_core_utils.prompt_templates.common_utils import (
 )
 from litellm.secret_managers.main import get_secret_str
 from litellm.types.llms.openai import AllMessageValues
-from litellm.utils import supports_reasoning
 
 from ...openai.chat.gpt_transformation import OpenAIGPTConfig
 
@@ -135,16 +134,22 @@ class DeepSeekChatConfig(OpenAIGPTConfig):
                 messages=messages, model=model, is_async=False
             )
 
-    def _thinking_mode_active(self, model: str, optional_params: dict) -> bool:
+    def _thinking_mode_active(self, optional_params: dict) -> bool:
         """
-        Returns True only when thinking mode is actually active for this request:
-          - model supports reasoning (capability check)
-          - user explicitly passed thinking={"type": "enabled"} (opt-in check)
+        Returns True only when the user has explicitly opted into thinking mode
+        by passing thinking={"type": "enabled"}.
+
+        DeepSeek thinking mode requires `reasoning_content` on every assistant
+        message; this opt-in is the validated gate for forwarding it. It is
+        intentionally the *only* gate — we do NOT also require a
+        capability-registry lookup (supports_reasoning), because newly-released
+        DeepSeek models (e.g. deepseek-v4-pro/flash) are not yet registered, and
+        gating on the registry would incorrectly suppress `reasoning_content`
+        forwarding for them (issue #28045). `map_openai_params` only ever sets
+        thinking={"type": "enabled"}, so this stays in lockstep with the
+        parameter-mapping definition of "thinking is on".
         """
-        return (
-            supports_reasoning(model=model, custom_llm_provider="deepseek")
-            and (optional_params.get("thinking") or {}).get("type") == "enabled"
-        )
+        return (optional_params.get("thinking") or {}).get("type") == "enabled"
 
     def transform_request(
         self,
@@ -158,12 +163,11 @@ class DeepSeekChatConfig(OpenAIGPTConfig):
         Ensures `reasoning_content` is forwarded on assistant messages for
         multi-turn thinking-mode conversations (issue #28045).
 
-        Only runs when thinking mode is actually active - guarded by both
-        supports_reasoning() (model capability) and optional_params["thinking"]
-        (user explicitly enabled it), preventing spurious injection on models
-        like deepseek-v3.2 that support thinking as opt-in but not always-on.
+        Only runs when the user has explicitly enabled thinking
+        (optional_params["thinking"] == {"type": "enabled"}), so non-thinking
+        requests — including deepseek-chat defaults — are never altered.
         """
-        if self._thinking_mode_active(model=model, optional_params=optional_params):
+        if self._thinking_mode_active(optional_params=optional_params):
             messages = self._fill_reasoning_content(messages)
         return super().transform_request(
             model=model,
@@ -185,7 +189,7 @@ class DeepSeekChatConfig(OpenAIGPTConfig):
         Async equivalent of transform_request — applies the same reasoning_content
         fix for multi-turn thinking-mode conversations.
         """
-        if self._thinking_mode_active(model=model, optional_params=optional_params):
+        if self._thinking_mode_active(optional_params=optional_params):
             messages = self._fill_reasoning_content(messages)
         return await super().async_transform_request(
             model=model,
