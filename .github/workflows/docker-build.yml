@@ -3,7 +3,7 @@ name: Docker Build and Notify
 on:
   push:
     branches:
-      - vv1.89.1
+      - vv1.89.5
 
 jobs:
   build:
@@ -34,7 +34,7 @@ jobs:
           push: true
           tags: |
             registry2.zarimpun.com/utarn/litellm:latest
-            registry2.zarimpun.com/utarn/litellm:vv1.89.1
+            registry2.zarimpun.com/utarn/litellm:vv1.89.5
             registry2.zarimpun.com/utarn/litellm:${{ steps.tag.outputs.tag }}
 
       - name: Notify via LINE OA API
